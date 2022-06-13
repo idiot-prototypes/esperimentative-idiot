@@ -5,18 +5,16 @@
 #
 
 .PHONY: all
-all: tests-subsys-shell-shell
+all: build
 
 .PHONY: run
 run: | build
 	west build -t run
 
 .PHONY: build
-build: tests-subsys-shell-shell
-
-tests-subsys-shell-shell: export BOARD = qemu_xtensa
-tests-subsys-shell-%: | bootloader modules tools
-	west build zephyr/tests/subsys/shell/$*
+build: export BOARD = qemu_xtensa
+build: | bootloader modules tools
+	west build idiocy
 
 bootloader modules tools: | zephyr/west.yml
 	west update
