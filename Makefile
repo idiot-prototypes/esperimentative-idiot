@@ -4,15 +4,27 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 
+BOARD = esp32
+export BOARD
+
+ZEPHYR_TOOLCHAIN_VARIANT = espressif
+export ZEPHYR_TOOLCHAIN_VARIANT
+
+ESPRESSIF_TOOLCHAIN_PATH = $(HOME)/.espressif/tools/zephyr/xtensa-esp32-elf
+export ESPRESSIF_TOOLCHAIN_PATH
+
 .PHONY: all
 all: build
+
+.PHONY: flash
+flash: | build
+	west flash --skip-rebuild
 
 .PHONY: run
 run: | build
 	west build -t run
 
 .PHONY: build
-build: export BOARD = qemu_xtensa
 build: | bootloader modules tools
 	west build idiocy
 
