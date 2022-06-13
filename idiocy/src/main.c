@@ -1,424 +1,403 @@
 /*
- * Copyright (c) 2017 Intel Corporation
+ * Copyright (c) 2015 Intel Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** @file
- *  @brief Interactive shell test suite
- *
- */
-
 #include <zephyr/zephyr.h>
-#include <ztest.h>
-
 #include <zephyr/shell/shell.h>
-#include <zephyr/shell/shell_dummy.h>
+#include <version.h>
+#include <zephyr/logging/log.h>
+#include <stdlib.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/usb/usb_device.h>
+#include <ctype.h>
 
-#define MAX_CMD_SYNTAX_LEN	(11)
-static char dynamic_cmd_buffer[][MAX_CMD_SYNTAX_LEN] = {
-		"dynamic",
-		"command"
-};
+LOG_MODULE_REGISTER(app);
 
-static void test_shell_execute_cmd(const char *cmd, int result)
+extern void foo(void);
+
+void timer_expired_handler(struct k_timer *timer)
 {
-	int ret;
+	LOG_INF("Timer expired.");
 
-	ret = shell_execute_cmd(NULL, cmd);
-
-	TC_PRINT("shell_execute_cmd(%s): %d\n", cmd, ret);
-
-	zassert_true(ret == result, "cmd: %s, got:%d, expected:%d",
-							cmd, ret, result);
+	/* Call another module to present logging from multiple sources. */
+	foo();
 }
 
-static void test_cmd_help(void)
-{
-	test_shell_execute_cmd("help", 0);
-	test_shell_execute_cmd("help -h", 1);
-	test_shell_execute_cmd("help --help", 1);
-	test_shell_execute_cmd("help dummy", -EINVAL);
-	test_shell_execute_cmd("help dummy dummy", -EINVAL);
-}
+K_TIMER_DEFINE(log_timer, timer_expired_handler, NULL);
 
-static void test_cmd_clear(void)
-{
-	test_shell_execute_cmd("clear", 0);
-	test_shell_execute_cmd("clear -h", 1);
-	test_shell_execute_cmd("clear --help", 1);
-	test_shell_execute_cmd("clear dummy", -EINVAL);
-	test_shell_execute_cmd("clear dummy dummy", -EINVAL);
-}
-
-static void test_cmd_shell(void)
-{
-	test_shell_execute_cmd("shell -h", 1);
-	test_shell_execute_cmd("shell --help", 1);
-	test_shell_execute_cmd("shell dummy", 1);
-	test_shell_execute_cmd("shell dummy dummy", 1);
-
-	/* subcommand: backspace_mode */
-	test_shell_execute_cmd("shell backspace_mode -h", 1);
-	test_shell_execute_cmd("shell backspace_mode --help", 1);
-	test_shell_execute_cmd("shell backspace_mode dummy", 1);
-
-	test_shell_execute_cmd("shell backspace_mode backspace", 0);
-	test_shell_execute_cmd("shell backspace_mode backspace -h", 1);
-	test_shell_execute_cmd("shell backspace_mode backspace --help", 1);
-	test_shell_execute_cmd("shell backspace_mode backspace dummy", -EINVAL);
-	test_shell_execute_cmd("shell backspace_mode backspace dummy dummy",
-				-EINVAL);
-
-	test_shell_execute_cmd("shell backspace_mode delete", 0);
-	test_shell_execute_cmd("shell backspace_mode delete -h", 1);
-	test_shell_execute_cmd("shell backspace_mode delete --help", 1);
-	test_shell_execute_cmd("shell backspace_mode delete dummy", -EINVAL);
-	test_shell_execute_cmd("shell backspace_mode delete dummy dummy",
-				-EINVAL);
-
-	/* subcommand: colors */
-	test_shell_execute_cmd("shell colors -h", 1);
-	test_shell_execute_cmd("shell colors --help", 1);
-	test_shell_execute_cmd("shell colors dummy", 1);
-	test_shell_execute_cmd("shell colors dummy dummy", 1);
-
-	test_shell_execute_cmd("shell colors off", 0);
-	test_shell_execute_cmd("shell colors off -h", 1);
-	test_shell_execute_cmd("shell colors off --help", 1);
-	test_shell_execute_cmd("shell colors off dummy", -EINVAL);
-	test_shell_execute_cmd("shell colors off dummy dummy", -EINVAL);
-
-	test_shell_execute_cmd("shell colors on", 0);
-	test_shell_execute_cmd("shell colors on -h", 1);
-	test_shell_execute_cmd("shell colors on --help", 1);
-	test_shell_execute_cmd("shell colors on dummy", -EINVAL);
-	test_shell_execute_cmd("shell colors on dummy dummy", -EINVAL);
-
-	/* subcommand: echo */
-	test_shell_execute_cmd("shell echo", 0);
-	test_shell_execute_cmd("shell echo -h", 1);
-	test_shell_execute_cmd("shell echo --help", 1);
-	test_shell_execute_cmd("shell echo dummy", -EINVAL);
-	test_shell_execute_cmd("shell echo dummy dummy", -EINVAL);
-
-	test_shell_execute_cmd("shell echo off", 0);
-	test_shell_execute_cmd("shell echo off -h", 1);
-	test_shell_execute_cmd("shell echo off --help", 1);
-	test_shell_execute_cmd("shell echo off dummy", -EINVAL);
-	test_shell_execute_cmd("shell echo off dummy dummy", -EINVAL);
-
-	test_shell_execute_cmd("shell echo on", 0);
-	test_shell_execute_cmd("shell echo on -h", 1);
-	test_shell_execute_cmd("shell echo on --help", 1);
-	test_shell_execute_cmd("shell echo on dummy", -EINVAL);
-	test_shell_execute_cmd("shell echo on dummy dummy", -EINVAL);
-
-	/* subcommand: stats */
-	test_shell_execute_cmd("shell stats", 1);
-	test_shell_execute_cmd("shell stats -h", 1);
-	test_shell_execute_cmd("shell stats --help", 1);
-	test_shell_execute_cmd("shell stats dummy", 1);
-	test_shell_execute_cmd("shell stats dummy dummy", 1);
-
-	test_shell_execute_cmd("shell stats reset", 0);
-	test_shell_execute_cmd("shell stats reset -h", 1);
-	test_shell_execute_cmd("shell stats reset --help", 1);
-	test_shell_execute_cmd("shell stats reset dummy", -EINVAL);
-	test_shell_execute_cmd("shell stats reset dummy dummy", -EINVAL);
-
-	test_shell_execute_cmd("shell stats show", 0);
-	test_shell_execute_cmd("shell stats show -h", 1);
-	test_shell_execute_cmd("shell stats show --help", 1);
-	test_shell_execute_cmd("shell stats show dummy", -EINVAL);
-	test_shell_execute_cmd("shell stats show dummy dummy", -EINVAL);
-}
-
-static void test_cmd_history(void)
-{
-	test_shell_execute_cmd("history", 0);
-	test_shell_execute_cmd("history -h", 1);
-	test_shell_execute_cmd("history --help", 1);
-	test_shell_execute_cmd("history dummy", -EINVAL);
-	test_shell_execute_cmd("history dummy dummy", -EINVAL);
-}
-
-static void test_cmd_resize(void)
-{
-	test_shell_execute_cmd("resize -h", 1);
-	test_shell_execute_cmd("resize --help", 1);
-	test_shell_execute_cmd("resize dummy", -EINVAL);
-	test_shell_execute_cmd("resize dummy dummy", -EINVAL);
-
-	/* subcommand: default */
-	test_shell_execute_cmd("resize default", 0);
-	test_shell_execute_cmd("resize default -h", 1);
-	test_shell_execute_cmd("resize default --help", 1);
-	test_shell_execute_cmd("resize default dummy", -EINVAL);
-	test_shell_execute_cmd("resize default dummy dummy", -EINVAL);
-}
-
-static void test_shell_module(void)
-{
-	test_shell_execute_cmd("test_shell_cmd", 0);
-	test_shell_execute_cmd("test_shell_cmd -h", 1);
-	test_shell_execute_cmd("test_shell_cmd --help", 1);
-	test_shell_execute_cmd("test_shell_cmd dummy", -EINVAL);
-	test_shell_execute_cmd("test_shell_cmd dummy dummy", -EINVAL);
-
-	test_shell_execute_cmd("", -ENOEXEC); /* empty command */
-	test_shell_execute_cmd("not existing command", -ENOEXEC);
-}
-
-/* test wildcard and static subcommands */
-static void test_shell_wildcards_static(void)
-{
-	test_shell_execute_cmd("test_wildcard", 0);
-	test_shell_execute_cmd("test_wildcard argument_1", 1);
-	test_shell_execute_cmd("test_wildcard argument?1", 1);
-	test_shell_execute_cmd("test_wildcard argu?ent?1", 1);
-	test_shell_execute_cmd("test_wildcard a*1", 1);
-	test_shell_execute_cmd("test_wildcard ar?u*1", 1);
-
-	test_shell_execute_cmd("test_wildcard *", 3);
-	test_shell_execute_cmd("test_wildcard a*", 2);
-}
-
-/* test wildcard and dynamic subcommands */
-static void test_shell_wildcards_dynamic(void)
-{
-	test_shell_execute_cmd("test_dynamic", 0);
-	test_shell_execute_cmd("test_dynamic d*", 1);
-	test_shell_execute_cmd("test_dynamic c*", 1);
-	test_shell_execute_cmd("test_dynamic d* c*", 2);
-}
-
-
-static int cmd_test_module(const struct shell *shell, size_t argc, char **argv)
+static int cmd_log_test_start(const struct shell *shell, size_t argc,
+			      char **argv, uint32_t period)
 {
 	ARG_UNUSED(argv);
+
+	k_timer_start(&log_timer, K_MSEC(period), K_MSEC(period));
+	shell_print(shell, "Log test started\n");
+
+	return 0;
+}
+
+static int cmd_log_test_start_demo(const struct shell *shell, size_t argc,
+				   char **argv)
+{
+	return cmd_log_test_start(shell, argc, argv, 200);
+}
+
+static int cmd_log_test_start_flood(const struct shell *shell, size_t argc,
+				    char **argv)
+{
+	return cmd_log_test_start(shell, argc, argv, 10);
+}
+
+static int cmd_log_test_stop(const struct shell *shell, size_t argc,
+			     char **argv)
+{
 	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	k_timer_stop(&log_timer);
+	shell_print(shell, "Log test stopped");
 
 	return 0;
 }
-SHELL_CMD_ARG_REGISTER(test_shell_cmd, NULL, "help", cmd_test_module, 1, 0);
 
-
-static int cmd_wildcard(const struct shell *shell, size_t argc, char **argv)
-{
-	int valid_arguments = 0;
-	for (size_t i = 1; i < argc; i++) {
-		if (!strcmp("argument_1", argv[i])) {
-			valid_arguments++;
-			continue;
-		}
-		if (!strcmp("argument_2", argv[i])) {
-			valid_arguments++;
-			continue;
-		}
-		if (!strcmp("dummy", argv[i])) {
-			valid_arguments++;
-		}
-	}
-
-	return valid_arguments;
-}
-
-SHELL_STATIC_SUBCMD_SET_CREATE(m_sub_test_shell_cmdl,
-	SHELL_CMD(argument_1, NULL, NULL, NULL),
-	SHELL_CMD(argument_2, NULL, NULL, NULL),
-	SHELL_CMD(dummy, NULL, NULL, NULL),
-	SHELL_SUBCMD_SET_END
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_log_test_start,
+	SHELL_CMD_ARG(demo, NULL,
+		  "Start log timer which generates log message every 200ms.",
+		  cmd_log_test_start_demo, 1, 0),
+	SHELL_CMD_ARG(flood, NULL,
+		  "Start log timer which generates log message every 10ms.",
+		  cmd_log_test_start_flood, 1, 0),
+	SHELL_SUBCMD_SET_END /* Array terminated. */
 );
-SHELL_CMD_REGISTER(test_wildcard, &m_sub_test_shell_cmdl, NULL, cmd_wildcard);
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_log_test,
+	SHELL_CMD_ARG(start, &sub_log_test_start, "Start log test", NULL, 2, 0),
+	SHELL_CMD_ARG(stop, NULL, "Stop log test.", cmd_log_test_stop, 1, 0),
+	SHELL_SUBCMD_SET_END /* Array terminated. */
+);
 
+SHELL_CMD_REGISTER(log_test, &sub_log_test, "Log test", NULL);
 
-static int cmd_dynamic(const struct shell *shell, size_t argc, char **argv)
+static int cmd_demo_ping(const struct shell *shell, size_t argc, char **argv)
 {
-	int valid_arguments = 0;
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
 
-	for (size_t i = 1; i < argc; i++) {
-		if (!strcmp(dynamic_cmd_buffer[0], argv[i])) {
-			valid_arguments++;
-			continue;
-		}
-		if (!strcmp(dynamic_cmd_buffer[1], argv[i])) {
-			valid_arguments++;
+	shell_print(shell, "pong");
+
+	return 0;
+}
+
+static int cmd_demo_board(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	shell_print(sh, CONFIG_BOARD);
+
+	return 0;
+}
+
+#if defined CONFIG_SHELL_GETOPT
+/* Thread save usage */
+static int cmd_demo_getopt_ts(const struct shell *sh, size_t argc,
+			      char **argv)
+{
+	struct getopt_state *state;
+	char *cvalue = NULL;
+	int aflag = 0;
+	int bflag = 0;
+	int c;
+
+	while ((c = getopt(argc, argv, "abhc:")) != -1) {
+		state = getopt_state_get();
+		switch (c) {
+		case 'a':
+			aflag = 1;
+			break;
+		case 'b':
+			bflag = 1;
+			break;
+		case 'c':
+			cvalue = state->optarg;
+			break;
+		case 'h':
+			/* When getopt is active shell is not parsing
+			 * command handler to print help message. It must
+			 * be done explicitly.
+			 */
+			shell_help(sh);
+			return SHELL_CMD_HELP_PRINTED;
+		case '?':
+			if (state->optopt == 'c') {
+				shell_print(sh,
+					"Option -%c requires an argument.",
+					state->optopt);
+			} else if (isprint(state->optopt)) {
+				shell_print(sh,
+					"Unknown option `-%c'.",
+					state->optopt);
+			} else {
+				shell_print(sh,
+					"Unknown option character `\\x%x'.",
+					state->optopt);
+			}
+			return 1;
+		default:
+			break;
 		}
 	}
 
-
-	return valid_arguments;
+	shell_print(sh, "aflag = %d, bflag = %d", aflag, bflag);
+	return 0;
 }
-/* dynamic command creation */
-static void dynamic_cmd_get(size_t idx, struct shell_static_entry *entry)
+
+static int cmd_demo_getopt(const struct shell *sh, size_t argc,
+			      char **argv)
 {
-	if (idx < ARRAY_SIZE(dynamic_cmd_buffer)) {
-		/* m_dynamic_cmd_buffer must be sorted alphabetically to ensure
-		 * correct CLI completion
-		 */
-		entry->syntax = dynamic_cmd_buffer[idx];
-		entry->handler  = NULL;
-		entry->subcmd = NULL;
-		entry->help = NULL;
-	} else {
-		/* if there are no more dynamic commands available syntax
-		 * must be set to NULL.
-		 */
-		entry->syntax = NULL;
+	char *cvalue = NULL;
+	int aflag = 0;
+	int bflag = 0;
+	int c;
+
+	while ((c = getopt(argc, argv, "abhc:")) != -1) {
+		switch (c) {
+		case 'a':
+			aflag = 1;
+			break;
+		case 'b':
+			bflag = 1;
+			break;
+		case 'c':
+			cvalue = optarg;
+			break;
+		case 'h':
+			/* When getopt is active shell is not parsing
+			 * command handler to print help message. It must
+			 * be done explicitly.
+			 */
+			shell_help(sh);
+			return SHELL_CMD_HELP_PRINTED;
+		case '?':
+			if (optopt == 'c') {
+				shell_print(sh,
+					"Option -%c requires an argument.",
+					optopt);
+			} else if (isprint(optopt)) {
+				shell_print(sh, "Unknown option `-%c'.",
+					optopt);
+			} else {
+				shell_print(sh,
+					"Unknown option character `\\x%x'.",
+					optopt);
+			}
+			return 1;
+		default:
+			break;
+		}
 	}
+
+	shell_print(sh, "aflag = %d, bflag = %d", aflag, bflag);
+	return 0;
 }
+#endif
 
-SHELL_DYNAMIC_CMD_CREATE(m_sub_test_dynamic, dynamic_cmd_get);
-SHELL_CMD_REGISTER(test_dynamic, &m_sub_test_dynamic, NULL, cmd_dynamic);
-
-static void unselect_cmd(void)
+static int cmd_demo_params(const struct shell *shell, size_t argc, char **argv)
 {
-	/* Unselecting command <shell color> */
-	const struct shell *shell = shell_backend_dummy_get_ptr();
-
-	shell->ctx->selected_cmd = NULL;
-}
-
-static void test_cmd_select(void)
-{
-	unselect_cmd();
-	test_shell_execute_cmd("select -h", 1);
-	test_shell_execute_cmd("select clear", -EINVAL);
-	test_shell_execute_cmd("off", -ENOEXEC);
-	test_shell_execute_cmd("on", -ENOEXEC);
-	test_shell_execute_cmd("select shell colors", 0);
-	test_shell_execute_cmd("off", 0);
-	test_shell_execute_cmd("on", 0);
-	unselect_cmd();
-	test_shell_execute_cmd("off", -ENOEXEC);
-	test_shell_execute_cmd("on", -ENOEXEC);
-}
-
-static void test_set_root_cmd(void)
-{
-	int err;
-
-	test_shell_execute_cmd("shell colors on", 0);
-	err = shell_set_root_cmd("__shell__");
-	zassert_equal(err, -EINVAL, "Unexpected error %d", err);
-
-	err = shell_set_root_cmd("shell");
-	zassert_equal(err, 0, "Unexpected error %d", err);
-
-	test_shell_execute_cmd("shell colors", 1);
-	test_shell_execute_cmd("colors on", 0);
-
-	err = shell_set_root_cmd(NULL);
-	zassert_equal(err, 0, "Unexpected error %d", err);
-
-	test_shell_execute_cmd("colors", -ENOEXEC);
-	test_shell_execute_cmd("shell colors on", 0);
-}
-
-static void test_shell_fprintf(void)
-{
-	static const char expect[] = "testing 1 2 3";
-	const struct shell *shell;
-	const char *buf;
-	size_t size;
-
-	shell = shell_backend_dummy_get_ptr();
-	zassert_not_null(shell, "Failed to get shell");
-
-	/* Clear the output buffer */
-	shell_backend_dummy_clear_output(shell);
-
-	shell_fprintf(shell, SHELL_VT100_COLOR_DEFAULT, "testing %d %s %c",
-		      1, "2", '3');
-	buf = shell_backend_dummy_get_output(shell, &size);
-	zassert_true(size >= sizeof(expect), "Expected size > %u, got %d",
-		     sizeof(expect), size);
-
-	/*
-	 * There are prompts and various ANSI characters in the output, so just
-	 * check that the string is in there somewhere.
-	 */
-	zassert_true(strstr(buf, expect),
-		     "Expected string to contain '%s', got '%s'", expect, buf);
-}
-
-#define RAW_ARG "aaa \"\" bbb"
-#define CMD_NAME test_cmd_raw_arg
-
-static int cmd_raw_arg(const struct shell *shell, size_t argc, char **argv)
-{
-	if (argc == 2) {
-		if (strcmp(argv[0], STRINGIFY(CMD_NAME))) {
-			return -1;
-		}
-		if (strcmp(argv[1], RAW_ARG)) {
-			return -1;
-		}
-	} else if (argc > 2) {
-		return -1;
+	shell_print(shell, "argc = %zd", argc);
+	for (size_t cnt = 0; cnt < argc; cnt++) {
+		shell_print(shell, "  argv[%zd] = %s", cnt, argv[cnt]);
 	}
 
 	return 0;
 }
 
-SHELL_CMD_ARG_REGISTER(CMD_NAME, NULL, NULL, cmd_raw_arg, 1, SHELL_OPT_ARG_RAW);
-
-static void test_raw_arg(void)
+static int cmd_demo_hexdump(const struct shell *shell, size_t argc, char **argv)
 {
-	test_shell_execute_cmd("test_cmd_raw_arg aaa \"\" bbb", 0);
-	test_shell_execute_cmd("test_cmd_raw_arg", 0);
-	test_shell_execute_cmd("select test_cmd_raw_arg", 0);
-	test_shell_execute_cmd("aaa \"\" bbb", 0);
+	shell_print(shell, "argc = %zd", argc);
+	for (size_t cnt = 0; cnt < argc; cnt++) {
+		shell_print(shell, "argv[%zd]", cnt);
+		shell_hexdump(shell, argv[cnt], strlen(argv[cnt]));
+	}
+
+	return 0;
+}
+
+static int cmd_version(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	shell_print(shell, "Zephyr version %s", KERNEL_VERSION_STRING);
+
+	return 0;
+}
+
+#define DEFAULT_PASSWORD "zephyr"
+
+static void login_init(void)
+{
+	printk("Shell Login Demo\nHint: password = %s\n", DEFAULT_PASSWORD);
+	if (!CONFIG_SHELL_CMD_ROOT[0]) {
+		shell_set_root_cmd("login");
+	}
+}
+
+static int check_passwd(char *passwd)
+{
+	/* example only -- not recommended for production use */
+	return strcmp(passwd, DEFAULT_PASSWORD);
+}
+
+static int cmd_login(const struct shell *shell, size_t argc, char **argv)
+{
+	static uint32_t attempts;
+
+	if (check_passwd(argv[1]) != 0) {
+		shell_error(shell, "Incorrect password!");
+		attempts++;
+		if (attempts > 3) {
+			k_sleep(K_SECONDS(attempts));
+		}
+		return -EINVAL;
+	}
+
+	/* clear history so password not visible there */
+	z_shell_history_purge(shell->history);
+	shell_obscure_set(shell, false);
 	shell_set_root_cmd(NULL);
-}
-
-static int cmd_dummy(const struct shell *shell, size_t argc, char **argv)
-{
+	shell_prompt_change(shell, "uart:~$ ");
+	shell_print(shell, "Shell Login Demo\n");
+	shell_print(shell, "Hit tab for help.\n");
+	attempts = 0;
 	return 0;
 }
 
-SHELL_CMD_REGISTER(dummy, NULL, NULL, cmd_dummy);
-
-static void test_max_argc(void)
+static int cmd_logout(const struct shell *shell, size_t argc, char **argv)
 {
-	BUILD_ASSERT(CONFIG_SHELL_ARGC_MAX == 12,
-		     "Unexpected test configuration.");
-
-	test_shell_execute_cmd("dummy 1 2 3 4 5 6 7 8 9 10 11", 0);
-	test_shell_execute_cmd("dummy 1 2 3 4 5 6 7 8 9 10 11 12", -ENOEXEC);
+	shell_set_root_cmd("login");
+	shell_obscure_set(shell, true);
+	shell_prompt_change(shell, "login: ");
+	shell_print(shell, "\n");
+	return 0;
 }
 
-
-static int cmd_handler_dict_1(const struct shell *sh, size_t argc, char **argv, void *data)
+static int set_bypass(const struct shell *sh, shell_bypass_cb_t bypass)
 {
-	int n = (intptr_t)data;
+	static bool in_use;
 
-	return n;
+	if (bypass && in_use) {
+		shell_error(sh, "Sample supports setting bypass on single instance.");
+
+		return -EBUSY;
+	}
+
+	in_use = !in_use;
+	if (in_use) {
+		shell_print(sh, "Bypass started, press ctrl-x ctrl-q to escape");
+		in_use = true;
+	}
+
+	shell_set_bypass(sh, bypass);
+
+	return 0;
 }
 
-static int cmd_handler_dict_2(const struct shell *sh, size_t argc, char **argv, void *data)
-{
-	int n = (intptr_t)data;
+#define CHAR_1 0x18
+#define CHAR_2 0x11
 
-	return n + n;
+static void bypass_cb(const struct shell *sh, uint8_t *data, size_t len)
+{
+	static uint8_t tail;
+	bool escape = false;
+
+	/* Check if escape criteria is met. */
+	if (tail == CHAR_1 && data[0] == CHAR_2) {
+		escape = true;
+	} else {
+		for (int i = 0; i < (len - 1); i++) {
+			if (data[i] == CHAR_1 && data[i + 1] == CHAR_2) {
+				escape = true;
+				break;
+			}
+		}
+	}
+
+	if (escape) {
+		shell_print(sh, "Exit bypass");
+		set_bypass(sh, NULL);
+		tail = 0;
+		return;
+	}
+
+	/* Store last byte for escape sequence detection */
+	tail = data[len - 1];
+
+	/* Do the data processing. */
+	for (int i = 0; i < len; i++) {
+		shell_fprintf(sh, SHELL_INFO, "%02x ", data[i]);
+	}
+	shell_fprintf(sh, SHELL_INFO, "| ");
+
+	for (int i = 0; i < len; i++) {
+		shell_fprintf(sh, SHELL_INFO, "%c", data[i]);
+	}
+	shell_fprintf(sh, SHELL_INFO, "\n");
+
 }
 
-SHELL_SUBCMD_DICT_SET_CREATE(dict1, cmd_handler_dict_1, (one, 1), (two, 2));
-SHELL_SUBCMD_DICT_SET_CREATE(dict2, cmd_handler_dict_2, (one, 1), (two, 2));
-
-SHELL_CMD_REGISTER(dict1, &dict1, NULL, NULL);
-SHELL_CMD_REGISTER(dict2, &dict2, NULL, NULL);
-
-static void test_cmd_dict(void)
+static int cmd_bypass(const struct shell *sh, size_t argc, char **argv)
 {
-	test_shell_execute_cmd("dict1 one", 1);
-	test_shell_execute_cmd("dict1 two", 2);
-
-	test_shell_execute_cmd("dict2 one", 2);
-	test_shell_execute_cmd("dict2 two", 4);
+	return set_bypass(sh, bypass_cb);
 }
 
+static int cmd_dict(const struct shell *shell, size_t argc, char **argv,
+		    void *data)
+{
+	int val = (intptr_t)data;
+
+	shell_print(shell, "(syntax, value) : (%s, %d)", argv[0], val);
+
+	return 0;
+}
+
+SHELL_SUBCMD_DICT_SET_CREATE(sub_dict_cmds, cmd_dict,
+	(value_0, 0), (value_1, 1), (value_2, 2), (value_3, 3)
+);
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_demo,
+	SHELL_CMD(dictionary, &sub_dict_cmds, "Dictionary commands", NULL),
+	SHELL_CMD(hexdump, NULL, "Hexdump params command.", cmd_demo_hexdump),
+	SHELL_CMD(params, NULL, "Print params command.", cmd_demo_params),
+	SHELL_CMD(ping, NULL, "Ping command.", cmd_demo_ping),
+	SHELL_CMD(board, NULL, "Show board name command.", cmd_demo_board),
+#if defined CONFIG_SHELL_GETOPT
+	SHELL_CMD(getopt_thread_safe, NULL,
+		  "Cammand using getopt in thread safe way"
+		  " looking for: \"abhc:\".",
+		  cmd_demo_getopt_ts),
+	SHELL_CMD(getopt, NULL, "Cammand using getopt in non thread safe way"
+		  " looking for: \"abhc:\".\n", cmd_demo_getopt),
+#endif
+	SHELL_SUBCMD_SET_END /* Array terminated. */
+);
+SHELL_CMD_REGISTER(demo, &sub_demo, "Demo commands", NULL);
+
+SHELL_CMD_ARG_REGISTER(version, NULL, "Show kernel version", cmd_version, 1, 0);
+
+SHELL_CMD_ARG_REGISTER(bypass, NULL, "Bypass shell", cmd_bypass, 1, 0);
+
+SHELL_COND_CMD_ARG_REGISTER(CONFIG_SHELL_START_OBSCURED, login, NULL,
+			    "<password>", cmd_login, 2, 0);
+
+SHELL_COND_CMD_REGISTER(CONFIG_SHELL_START_OBSCURED, logout, NULL,
+			"Log out.", cmd_logout);
+
+
+/* Create a set of commands. Commands to this set are added using @ref SHELL_SUBCMD_ADD
+ * and @ref SHELL_SUBCMD_COND_ADD.
+ */
 SHELL_SUBCMD_SET_CREATE(sub_section_cmd, (section_cmd));
 
 static int cmd1_handler(const struct shell *sh, size_t argc, char **argv)
@@ -427,7 +406,9 @@ static int cmd1_handler(const struct shell *sh, size_t argc, char **argv)
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
-	return 10;
+	shell_print(sh, "cmd1 executed");
+
+	return 0;
 }
 
 /* Create a set of subcommands for "section_cmd cm1". */
@@ -439,37 +420,24 @@ SHELL_SUBCMD_ADD((section_cmd), cmd1, &sub_section_cmd1, "help for cmd1", cmd1_h
 SHELL_CMD_REGISTER(section_cmd, &sub_section_cmd,
 		   "Demo command using section for subcommand registration", NULL);
 
-static void test_section_cmd(void)
+void main(void)
 {
-	test_shell_execute_cmd("section_cmd", SHELL_CMD_HELP_PRINTED);
-	test_shell_execute_cmd("section_cmd cmd1", 10);
-	test_shell_execute_cmd("section_cmd cmd2", 20);
-	test_shell_execute_cmd("section_cmd cmd1 sub_cmd1", 11);
-	test_shell_execute_cmd("section_cmd cmd1 sub_cmd2", -EINVAL);
-}
+	if (IS_ENABLED(CONFIG_SHELL_START_OBSCURED)) {
+		login_init();
+	}
 
-void test_main(void)
-{
-	ztest_test_suite(shell_test_suite,
-			ztest_1cpu_unit_test(test_cmd_help),
-			ztest_unit_test(test_cmd_clear),
-			ztest_unit_test(test_cmd_shell),
-			ztest_unit_test(test_cmd_history),
-			ztest_unit_test(test_cmd_select),
-			ztest_unit_test(test_cmd_resize),
-			ztest_unit_test(test_shell_module),
-			ztest_unit_test(test_shell_wildcards_static),
-			ztest_unit_test(test_shell_wildcards_dynamic),
-			ztest_unit_test(test_shell_fprintf),
-			ztest_unit_test(test_set_root_cmd),
-			ztest_unit_test(test_raw_arg),
-			ztest_unit_test(test_max_argc),
-			ztest_unit_test(test_cmd_dict),
-			ztest_unit_test(test_section_cmd)
-			);
+#if DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_shell_uart), zephyr_cdc_acm_uart)
+	const struct device *dev;
+	uint32_t dtr = 0;
 
-	/* Let the shell backend initialize. */
-	k_msleep(20);
+	dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
+	if (!device_is_ready(dev) || usb_enable(NULL)) {
+		return;
+	}
 
-	ztest_run_test_suite(shell_test_suite);
+	while (!dtr) {
+		uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
+		k_sleep(K_MSEC(100));
+	}
+#endif
 }
