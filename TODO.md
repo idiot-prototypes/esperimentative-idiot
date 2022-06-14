@@ -3,5 +3,9 @@
 - [X] Build and run an image on `qemu`
 - [X] Build and run an image on an [ESP32] board
 - [X] Create an out-of-tree source, build it and run it; whatever the target
+- [ ] Connect I2C devices
+- [ ] Connect SPI devices
+- [ ] Connect to Wi-Fi network
+- [ ] Pair using Bluetooth
 
 [ESP32]: https://cdn.shopify.com/s/files/1/1509/1638/files/ESP-32_NodeMCU_Developmentboard_Pinout.pdf?v=1609851295
