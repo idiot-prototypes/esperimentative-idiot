@@ -28,6 +28,7 @@ run: | build
 build: | bootloader modules tools
 	west build idiocy
 
+.PRECIOUS: bootloader modules tools
 bootloader modules tools: | zephyr/west.yml
 	west update
 
@@ -35,6 +36,7 @@ bootloader modules tools: | zephyr/west.yml
 update: | zephyr/west.yml
 	west update
 
+.PRECIOUS: zephyr/west.yml
 zephyr/west.yml:
 	west init
 
