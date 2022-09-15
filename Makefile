@@ -13,6 +13,9 @@ export ZEPHYR_TOOLCHAIN_VARIANT
 ESPRESSIF_TOOLCHAIN_PATH = $(HOME)/.espressif/tools/zephyr/xtensa-esp32-elf
 export ESPRESSIF_TOOLCHAIN_PATH
 
+DTC_OVERLAY_FILE = $(CURDIR)/esp32.overlay
+export DTC_OVERLAY_FILE
+
 .PHONY: all
 all: build
 
@@ -26,7 +29,7 @@ run: | build
 
 .PHONY: build
 build: | bootloader modules tools
-	west build zephyr/samples/subsys/shell/shell_module
+	west build zephyr/samples/sensor/bme280
 
 .PRECIOUS: bootloader modules tools
 bootloader modules tools: | zephyr/west.yml
