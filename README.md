@@ -1,14 +1,14 @@
-# espressive-idiot
+# esperimentative-idiot
 
-expressive-idiot is a throwaway repository to get a first step in the world of
-[zephyr].
+esperimentative-idiot is a throwaway repository to get a first step in the
+world of [zephyr].
 
 It primarily intends to build a firmware to run on an [ESP32-WROOM-32E] board
 and/or the QEMU Tensilica Xtensa system emulator.
 
 # BUGS
 
-Report bugs at *https://github.com/idiot-prototypes/espressive-idiot/issues*
+Report bugs at *https://github.com/idiot-prototypes/esperimentative-idiot/issues*
 
 # AUTHOR
 
