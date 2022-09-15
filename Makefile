@@ -26,7 +26,7 @@ run: | build
 
 .PHONY: build
 build: | bootloader modules tools
-	west build idiocy
+	west build zephyr/samples/subsys/shell/shell_module
 
 .PRECIOUS: bootloader modules tools
 bootloader modules tools: | zephyr/west.yml
