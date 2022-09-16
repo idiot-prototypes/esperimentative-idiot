@@ -8,6 +8,14 @@ and/or the QEMU Tensilica Xtensa system emulator.
 
 ## PREREQUISITE
 
+### CMAKE PACKAGE
+
+Install the Zephyr [CMake package] using [west] `zephyr-export`:
+
+	west zephyr-export
+
+### TOOLCHAIN
+
 Install the [toolchain] by extracting the archive to the home directory
 `~/.espressif/tools/zephyr`.
 
@@ -33,6 +41,8 @@ the terms of the GNU Lesser General Public License as published by the Free
 Software Foundation, either version 2.1 of the License, or (at your option) any
 later version.
 
+[west]: https://github.com/zephyrproject-rtos/west
 [zephyr]: https://github.com/zephyrproject-rtos/zephyr
 [ESP32-WROOM-32E]: https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf
+[CMake package]: https://docs.zephyrproject.org/latest/build/zephyr_cmake_package.html#zephyr-cmake-package-export-west
 [toolchain]: https://docs.espressif.com/projects/esp-idf/en/v4.2/esp32/api-guides/tools/idf-tools.html#xtensa-esp32-elf
