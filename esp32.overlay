@@ -10,4 +10,8 @@
 		compatible = "bosch,bme280";
 		reg = <0x76>;
 	};
+	bh1750@23 {
+		compatible = "rohm,bh1750";
+		reg = <0x23>;
+	};
 };

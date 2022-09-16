@@ -9,3 +9,4 @@ find_package(Zephyr)
 project(esperimentative_idiot)
 
 add_subdirectory(bme280)
+add_subdirectory(drivers)

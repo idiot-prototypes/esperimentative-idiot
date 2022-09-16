@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: esperimentative-idiot
+
+build:
+  cmake: .
+  kconfig: drivers/Kconfig
