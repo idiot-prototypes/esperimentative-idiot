@@ -24,6 +24,16 @@ Example on Linux x86_64:
 	mkdir -p ~/.espressif/tools/zephyr
 	curl -s https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_4_0-esp-2020r3-linux-amd64.tar.gz | tar xvzf - -C ~/.espressif/tools/zephyr
 
+### SHELL COMPLETION (OPTIONAL)
+
+Eventually, install the [shell completion] script using [west] `completion`,
+and relog then (or `source ~/.local/share/bash-completion/completions/west`).
+
+Example for bash:
+
+	mkdir -p ~/.local/share/bash-completion/completions
+	west completion bash >~/.local/share/bash-completion/completions/west
+
 ## BUGS
 
 Report bugs at *https://github.com/idiot-prototypes/esperimentative-idiot/issues*
@@ -46,3 +56,4 @@ later version.
 [ESP32-WROOM-32E]: https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.pdf
 [CMake package]: https://docs.zephyrproject.org/latest/build/zephyr_cmake_package.html#zephyr-cmake-package-export-west
 [toolchain]: https://docs.espressif.com/projects/esp-idf/en/v4.2/esp32/api-guides/tools/idf-tools.html#xtensa-esp32-elf
+[shell completion]: https://docs.zephyrproject.org/latest/develop/west/install.html#enabling-shell-completion
