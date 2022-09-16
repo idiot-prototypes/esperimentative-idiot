@@ -6,15 +6,15 @@ world of [zephyr].
 It primarily intends to build a firmware to run on an [ESP32-WROOM-32E] board
 and/or the QEMU Tensilica Xtensa system emulator.
 
-# BUGS
+## BUGS
 
 Report bugs at *https://github.com/idiot-prototypes/esperimentative-idiot/issues*
 
-# AUTHOR
+## AUTHOR
 
 Written by Gaël PORTAY *gael.portay@gmail.com*
 
-# COPYRIGHT
+## COPYRIGHT
 
 Copyright (c) 2022 Gaël PORTAY
 
