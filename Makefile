@@ -27,6 +27,10 @@ flash: | build
 run: | build
 	west build -t run
 
+.PHONY: menuconfig
+menuconfig: | build
+	west build -t menuconfig
+
 .PHONY: build
 build: | bootloader modules tools
 	west build zephyr/samples/sensor/bme280
