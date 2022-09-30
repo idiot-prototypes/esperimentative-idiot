@@ -8,9 +8,9 @@ and/or the QEMU Tensilica Xtensa system emulator.
 
 ## BUILD AND FLASH
 
-Build the `shell_module` sample application from the [zephyr] sources:
+Build the `idiocy` application from the source tree:
 
-	west build -b esp32 zephyr/samples/subsys/shell/shell_module/
+	west build -b esp32 esperimentative-idiot/idiocy/
 
 And flash the firmware down to the device:
 

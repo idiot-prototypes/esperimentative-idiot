@@ -14,4 +14,8 @@
 		compatible = "rohm,bh1750";
 		reg = <0x23>;
 	};
+	htu21d@40 {
+		compatible = "meas,htu21d";
+		reg = <0x40>;
+	};
 };
