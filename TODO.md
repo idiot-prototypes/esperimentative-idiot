@@ -3,8 +3,11 @@
 - [X] Build and run an image on `qemu`
 - [X] Build and run an image on an [ESP32] board
 - [X] Create an out-of-tree source, build it and run it; whatever the target
-- [X] Connect I2C devices
-- [ ] Connect SPI devices
+- [X] Connect I2C devices ([BH1750], [BMP280], and [HTU21])
+- [ ] Implement out-of-tree drivers
+  - [ ] [BH1750]
+  - [ ] [HTU21]
+- [ ] Connect SPI devices ([ST7735])
 - [ ] Connect to Wi-Fi network
 - [ ] Pair using Bluetooth
 
@@ -39,3 +42,4 @@ uart:~$ i2c scan I2C_0
 [BH1750]: https://www.az-delivery.de/en/products/gy-302-bh1750-lichtsensor-lichtstaerke-modul-fuer-arduino-und-raspberry-pi
 [BMP280]: https://www.az-delivery.de/en/products/azdelivery-bmp280-barometrischer-sensor-luftdruck-modul-fur-arduino-und-raspberry-pi
 [HTU21]: https://www.az-delivery.de/en/products/gy-21-temperatur-sensor-modul
+[ST7735]: https://www.az-delivery.de/en/products/1-8-zoll-spi-tft-display
