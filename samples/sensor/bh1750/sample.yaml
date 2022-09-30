@@ -1,0 +1,12 @@
+sample:
+  name: BH1750 Sensor sample
+tests:
+  sample.sensor.bh1750:
+    harness: console
+    tags: sensors
+    platform_allow: esp32
+    harness_config:
+        type: one_line
+        regex:
+            - "light: (.*)"
+        fixture: fixture_i2c_bh1750
