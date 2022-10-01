@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: TE Connectivity integrated humidity and temperature sensor
+
+compatible: "meas,htu21d"
+
+include: i2c-device.yaml
