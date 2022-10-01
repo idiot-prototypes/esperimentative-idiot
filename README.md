@@ -6,6 +6,16 @@ world of [zephyr].
 It primarily intends to build a firmware to run on an [ESP32-WROOM-32E] board
 and/or the QEMU Tensilica Xtensa system emulator.
 
+## BUILD AND FLASH
+
+Build the `shell_module` sample application from the [zephyr] sources:
+
+	west build -b esp32 zephyr/samples/subsys/shell/shell_module/
+
+And flash the firmware down to the device:
+
+	west flash
+
 ## PREREQUISITE
 
 ### CMAKE PACKAGE
