@@ -23,7 +23,7 @@ Three I2C sensors are connected to the [I2C0] PINs (`SDA` [GPIO21][ESP32];
 - [HTU21] at address `0x40`
 
 ```
-uart:~$ i2c scan I2C_0
+uart:~$ i2c scan i2c@3ff53000
      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
 00:             -- -- -- -- -- -- -- -- -- -- -- -- 
 10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
