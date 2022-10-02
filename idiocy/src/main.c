@@ -65,7 +65,7 @@ void main(void)
 		return;
 
 	while (1) {
-		struct sensor_value temp, press, light, humidity;
+		struct sensor_value temp, press, light, humidity, temp2;
 
 		sensor_sample_fetch(bme280_dev);
 		sensor_channel_get(bme280_dev, SENSOR_CHAN_AMBIENT_TEMP,
@@ -76,10 +76,13 @@ void main(void)
 		sensor_sample_fetch(htu21d_dev);
 		sensor_channel_get(htu21d_dev, SENSOR_CHAN_HUMIDITY,
 				   &humidity);
+		sensor_channel_get(htu21d_dev, SENSOR_CHAN_AMBIENT_TEMP,
+				   &temp2);
 
-		printk("temp: %d.%06d; press: %d.%06d; light: %d.%06d; humidity: %d.%06d\n",
+		printk("temp: %d.%06d; press: %d.%06d; light: %d.%06d; humidity: %d.%06d; temp2: %d.%06d\n",
 		      temp.val1, temp.val2, press.val1, press.val2, light.val1,
-		      light.val2, humidity.val1, humidity.val2);
+		      light.val2, humidity.val1, humidity.val2, temp2.val1,
+		      temp2.val2);
 
 		k_sleep(K_MSEC(1000));
 	}
