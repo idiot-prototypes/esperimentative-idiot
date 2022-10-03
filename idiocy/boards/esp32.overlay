@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+/ {
+	chosen {
+		zephyr,display = &st7735r;
+	};
+};
+
 &i2c0 {
 	status = "okay";
 	bmp280@76 {
@@ -17,5 +23,34 @@
 	htu21d@40 {
 		compatible = "meas,htu21d";
 		reg = <0x40>;
+	};
+};
+
+&spi3 {
+	cs-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
+	status = "okay";
+	st7735r: st7735r@0 {
+		compatible = "sitronix,st7735r";
+		spi-max-frequency = <20000000>;
+		reg = <0>;
+		cmd-data-gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio0 17 GPIO_ACTIVE_LOW>;
+		width = <160>;
+		height = <128>;
+		x-offset = <0>;
+		y-offset = <0>;
+		madctl = <0x60>;
+		colmod = <0x55>;
+		vmctr1 = <0x0e>;
+		pwctr1 = [a2 02 84];
+		pwctr2 = [c5];
+		pwctr3 = [0a 00];
+		pwctr4 = [8a 2a];
+		pwctr5 = [8a ee];
+		frmctr1 = [01 2c 2d];
+		frmctr2 = [01 2c 2d];
+		frmctr3 = [01 2c 2d 01 2c 2d];
+		gamctrp1 = [02 1c 07 12 37 32 29 2d 29 25 2b 39 00 01 03 10];
+		gamctrn1 = [03 1d 07 06 2e 2c 29 2d 2e 2e 37 3f 00 00 02 10];
 	};
 };
