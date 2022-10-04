@@ -3,10 +3,10 @@
 - [X] Build and run an image on `qemu`
 - [X] Build and run an image on an [ESP32] board
 - [X] Create an out-of-tree source, build it and run it; whatever the target
-- [X] Connect I2C devices ([BH1750], [BMP280], and [HTU21])
+- [X] Connect I2C devices ([BH1750], [BMP280], and [HTU21D])
 - [X] Implement out-of-tree drivers
   - [X] [BH1750](drivers/sensor/bh1750/)
-  - [X] [HTU21](drivers/sensor/htu21d/)
+  - [X] [HTU21D](drivers/sensor/htu21d/)
 - [ ] Connect SPI devices ([ST7735])
 - [ ] Connect to Wi-Fi network
 - [ ] Pair using Bluetooth
@@ -20,7 +20,7 @@ Three I2C sensors are connected to the [I2C0] PINs (`SDA` [GPIO21][ESP32];
   if `ADDR` PIN is >= 0.7 * `VCC`)
 - [BMP280] at address `0x76` (`CSB` and `SDO` are left not connected; `CSB` is
   pulled-up; `SDO` is pulled-down)
-- [HTU21] at address `0x40`
+- [HTU21D] at address `0x40`
 
 ```
 uart:~$ i2c scan i2c@3ff53000
@@ -41,5 +41,5 @@ uart:~$ i2c scan i2c@3ff53000
 [I2C0]: https://github.com/zephyrproject-rtos/zephyr/blob/566d07e00cce33f70ddc759d383950b9600c217b/boards/xtensa/esp32/esp32.dts#L64-L65
 [BH1750]: https://www.az-delivery.de/en/products/gy-302-bh1750-lichtsensor-lichtstaerke-modul-fuer-arduino-und-raspberry-pi
 [BMP280]: https://www.az-delivery.de/en/products/azdelivery-bmp280-barometrischer-sensor-luftdruck-modul-fur-arduino-und-raspberry-pi
-[HTU21]: https://www.az-delivery.de/en/products/gy-21-temperatur-sensor-modul
+[HTU21D]: https://www.az-delivery.de/en/products/gy-21-temperatur-sensor-modul
 [ST7735]: https://www.az-delivery.de/en/products/1-8-zoll-spi-tft-display
