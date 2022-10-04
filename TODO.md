@@ -4,9 +4,9 @@
 - [X] Build and run an image on an [ESP32] board
 - [X] Create an out-of-tree source, build it and run it; whatever the target
 - [X] Connect I2C devices ([BH1750], [BMP280], and [HTU21])
-- [ ] Implement out-of-tree drivers
-  - [ ] [BH1750]
-  - [ ] [HTU21]
+- [X] Implement out-of-tree drivers
+  - [X] [BH1750](drivers/sensor/bh1750/)
+  - [X] [HTU21](drivers/sensor/htu21d/)
 - [ ] Connect SPI devices ([ST7735])
 - [ ] Connect to Wi-Fi network
 - [ ] Pair using Bluetooth
