@@ -7,7 +7,7 @@
 - [X] Implement out-of-tree drivers
   - [X] [BH1750](drivers/sensor/bh1750/)
   - [X] [HTU21D](drivers/sensor/htu21d/)
-- [ ] Connect SPI devices ([ST7735])
+- [ ] Connect SPI devices ([ST7735R])
 - [ ] Connect to Wi-Fi network
 - [ ] Pair using Bluetooth
 
@@ -42,4 +42,4 @@ uart:~$ i2c scan i2c@3ff53000
 [BH1750]: https://www.az-delivery.de/en/products/gy-302-bh1750-lichtsensor-lichtstaerke-modul-fuer-arduino-und-raspberry-pi
 [BMP280]: https://www.az-delivery.de/en/products/azdelivery-bmp280-barometrischer-sensor-luftdruck-modul-fur-arduino-und-raspberry-pi
 [HTU21D]: https://www.az-delivery.de/en/products/gy-21-temperatur-sensor-modul
-[ST7735]: https://www.az-delivery.de/en/products/1-8-zoll-spi-tft-display
+[ST7735R]: https://www.az-delivery.de/en/products/1-8-zoll-spi-tft-display
