@@ -7,7 +7,7 @@
 - [X] Implement out-of-tree drivers
   - [X] [BH1750](drivers/sensor/bh1750/)
   - [X] [HTU21D](drivers/sensor/htu21d/)
-- [ ] Connect SPI devices ([ST7735R])
+- [x] Connect SPI devices ([ST7735R])
 - [ ] Connect to Wi-Fi network
 - [ ] Pair using Bluetooth
 
@@ -37,8 +37,25 @@ uart:~$ i2c scan i2c@3ff53000
 (...)
 ```
 
+## SPI DEVICES
+
+The [ST7735R] TFT controller is connected to the [VSPI] PINs.
+
+| [ST7735R] | [ESP32]        |
+| --------- | -------------- |
+| LED       | 3V3            |
+| SCK       | GPIO18/VSPICLK |
+| SDA       | GPIO23/VSPID   |
+| A0        | GPIO16         |
+| RESET     | GPIO17         |
+| CS        | GPIO5/VSPICS0  |
+| GND       | GND            |
+
+_Note_: `VSPIQ` is left not connected.
+
 [ESP32]: https://cdn.shopify.com/s/files/1/1509/1638/files/ESP-32_NodeMCU_Developmentboard_Pinout.pdf?v=1609851295
 [I2C0]: https://github.com/zephyrproject-rtos/zephyr/blob/566d07e00cce33f70ddc759d383950b9600c217b/boards/xtensa/esp32/esp32.dts#L64-L65
+[VSPI]: https://github.com/zephyrproject-rtos/zephyr/blob/74922049bad9306d33b896ac4d633c3c8194f97b/boards/xtensa/esp32/esp32.dts#L84-L92
 [BH1750]: https://www.az-delivery.de/en/products/gy-302-bh1750-lichtsensor-lichtstaerke-modul-fuer-arduino-und-raspberry-pi
 [BMP280]: https://www.az-delivery.de/en/products/azdelivery-bmp280-barometrischer-sensor-luftdruck-modul-fur-arduino-und-raspberry-pi
 [HTU21D]: https://www.az-delivery.de/en/products/gy-21-temperatur-sensor-modul
