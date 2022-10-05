@@ -34,6 +34,12 @@ Example on Linux x86_64:
 	mkdir -p ~/.espressif/tools/zephyr
 	curl -s https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_4_0-esp-2020r3-linux-amd64.tar.gz | tar xvzf - -C ~/.espressif/tools/zephyr
 
+### BLOBS
+
+Download the blobs:
+
+	west blobs fetch
+
 ### SHELL COMPLETION (OPTIONAL)
 
 Eventually, install the [shell completion] script using [west] `completion`,
