@@ -8,8 +8,12 @@
   - [X] [BH1750](drivers/sensor/bh1750/)
   - [X] [HTU21D](drivers/sensor/htu21d/)
 - [x] Connect SPI devices ([ST7735R])
+- [x] Enable Bluetooth LE
+  - [X] Environmental Sensing Service (Temperature, Pressure, Humidity,
+    custom characteristics...)
+  - [ ] Device Information Service (Manufacturer Name; Firmware, Hardware,
+    Sofware revision...)
 - [ ] Connect to Wi-Fi network
-- [ ] Pair using Bluetooth
 
 ## I2C DEVICES
 
