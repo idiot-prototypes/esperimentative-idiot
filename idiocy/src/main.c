@@ -172,7 +172,7 @@ void main(void)
 {
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
 	const struct device *display_dev;
-	lv_obj_t *label;
+	lv_obj_t *light_label, *temp_label, *press_label, *humidity_label;
 	int err;
 
 	bme280_dev = get_bme280_device();
@@ -191,8 +191,17 @@ void main(void)
 	if (!device_is_ready(display_dev))
 		return;
 
-	label = lv_label_create(lv_scr_act());
-	lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+	light_label = lv_label_create(lv_scr_act());
+	lv_obj_align(light_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+
+	temp_label = lv_label_create(lv_scr_act());
+	lv_obj_align(temp_label, LV_ALIGN_CENTER, 0, 0);
+
+	press_label = lv_label_create(lv_scr_act());
+	lv_obj_align(press_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
+	humidity_label = lv_label_create(lv_scr_act());
+	lv_obj_align(humidity_label, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 
 	lv_task_handler();
 	display_blanking_off(display_dev);
@@ -226,11 +235,17 @@ void main(void)
 		      htu21d_humidity.val1, htu21d_humidity.val2,
 		      htu21d_temp.val1, htu21d_temp.val2);
 
-		lv_label_set_text_fmt(label, "temp: %d.%06d\npress: %d.%06d\nlight: %d.%06d\nhumidity: %d.%06d\ntemp2: %d.%06d\n",
-		      bme280_temp.val1, bme280_temp.val2, bme280_press.val1,
-		      bme280_press.val2, bh1750_light.val1, bh1750_light.val2,
-		      htu21d_humidity.val1, htu21d_humidity.val2,
-		      htu21d_temp.val1, htu21d_temp.val2);
+		lv_label_set_text_fmt(light_label, "%dlux", bh1750_light.val1);
+
+		lv_label_set_text_fmt(temp_label, "%d.%d°C", bme280_temp.val1,
+				      bme280_temp.val2 / 100000);
+
+		lv_label_set_text_fmt(press_label, "%d.%dPa",
+				      bme280_press.val1,
+				      bme280_press.val2 / 100000);
+
+		lv_label_set_text_fmt(humidity_label, "%d%%",
+				      htu21d_humidity.val1);
 
 		lv_task_handler();
 		k_sleep(K_MSEC(1000));
