@@ -210,10 +210,10 @@ void main(void)
 		return;
 
 	ble_label = lv_label_create(lv_scr_act());
-	lv_obj_align(ble_label, LV_ALIGN_TOP_LEFT, 0, 0);
+	lv_obj_align(ble_label, LV_ALIGN_TOP_RIGHT, 0, 0);
 
 	light_label = lv_label_create(lv_scr_act());
-	lv_obj_align(light_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+	lv_obj_align(light_label, LV_ALIGN_TOP_LEFT, 0, 0);
 
 	temp_label = lv_label_create(lv_scr_act());
 	lv_obj_align(temp_label, LV_ALIGN_CENTER, 0, 0);
