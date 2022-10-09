@@ -18,6 +18,8 @@
 #include <zephyr/sys/byteorder.h>
 #include <lvgl.h>
 
+static uint8_t ble_connections;
+
 static ssize_t read_temperature(struct bt_conn *conn,
 			   const struct bt_gatt_attr *attr,
 			   void *buf,
@@ -129,6 +131,21 @@ static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_UUID16_ALL, BT_UUID_16_ENCODE(BT_UUID_ESS_VAL)),
 };
 
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+	ble_connections++;
+}
+
+static void disconnected(struct bt_conn *conn, uint8_t reason)
+{
+	ble_connections--;
+}
+
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+	.connected = connected,
+	.disconnected = disconnected,
+};
+
 static const struct device *get_bme280_device(void)
 {
 	const struct device *const dev = DEVICE_DT_GET_ANY(bosch_bme280);
@@ -172,7 +189,8 @@ void main(void)
 {
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
 	const struct device *display_dev;
-	lv_obj_t *light_label, *temp_label, *press_label, *humidity_label;
+	lv_obj_t *ble_label, *light_label, *temp_label, *press_label,
+		 *humidity_label;
 	int err;
 
 	bme280_dev = get_bme280_device();
@@ -190,6 +208,9 @@ void main(void)
 	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 	if (!device_is_ready(display_dev))
 		return;
+
+	ble_label = lv_label_create(lv_scr_act());
+	lv_obj_align(ble_label, LV_ALIGN_TOP_LEFT, 0, 0);
 
 	light_label = lv_label_create(lv_scr_act());
 	lv_obj_align(light_label, LV_ALIGN_TOP_RIGHT, 0, 0);
@@ -234,6 +255,11 @@ void main(void)
 		      bme280_press.val2, bh1750_light.val1, bh1750_light.val2,
 		      htu21d_humidity.val1, htu21d_humidity.val2,
 		      htu21d_temp.val1, htu21d_temp.val2);
+
+		if (ble_connections)
+			lv_label_set_text_fmt(ble_label, LV_SYMBOL_BLUETOOTH);
+		else
+			lv_label_set_text_fmt(ble_label, "");
 
 		lv_label_set_text_fmt(light_label, "%dlux", bh1750_light.val1);
 
