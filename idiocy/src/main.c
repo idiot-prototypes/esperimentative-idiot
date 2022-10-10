@@ -240,18 +240,23 @@ void main(void)
 		return;
 
 	ble_label = lv_label_create(lv_scr_act());
+	lv_label_set_text(ble_label, "");
 	lv_obj_align(ble_label, LV_ALIGN_TOP_RIGHT, 0, 0);
 
 	light_label = lv_label_create(lv_scr_act());
+	lv_label_set_text(light_label, "0lux");
 	lv_obj_align(light_label, LV_ALIGN_TOP_LEFT, 0, 0);
 
 	temp_label = lv_label_create(lv_scr_act());
+	lv_label_set_text(temp_label, "0.0°C");
 	lv_obj_align(temp_label, LV_ALIGN_CENTER, 0, 0);
 
 	press_label = lv_label_create(lv_scr_act());
+	lv_label_set_text(press_label, "0.0Pa");
 	lv_obj_align(press_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 
 	humidity_label = lv_label_create(lv_scr_act());
+	lv_label_set_text(humidity_label, "0%");
 	lv_obj_align(humidity_label, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 
 	lv_task_handler();
