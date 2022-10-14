@@ -9,18 +9,46 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/display.h>
+#if defined(CONFIG_BT)
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/services/bas.h>
+#endif
 #include <zephyr/sys/byteorder.h>
+#if defined(CONFIG_LVGL)
 #include <lvgl.h>
+#endif
 
+static struct sensor_value bme280_temp;
+static struct sensor_value bme280_press;
+static struct sensor_value bh1750_light;
+static struct sensor_value htu21d_humidity;
+static struct sensor_value htu21d_temp;
+
+#if defined(CONFIG_BT)
 static uint8_t ble_connections;
 
+#if defined(CONFIG_LVGL)
 static lv_obj_t *ble_label;
+
+static void bt_update_label(unsigned int *passkey)
+{
+	if (passkey)
+		lv_label_set_text_fmt(ble_label, LV_SYMBOL_BLUETOOTH "%06u",
+				      *passkey);
+	else if (ble_connections)
+		lv_label_set_text(ble_label, LV_SYMBOL_BLUETOOTH);
+	else
+		lv_label_set_text(ble_label, "");
+}
+#else
+static inline void bt_update_label(unsigned int * const)
+{
+}
+#endif
 
 static ssize_t read_temperature(struct bt_conn *conn,
 			   const struct bt_gatt_attr *attr,
@@ -77,12 +105,6 @@ static ssize_t read_illuminance(struct bt_conn *conn,
 				 sizeof(value)-1); /* 24 bits */
 }
 
-static struct sensor_value bme280_temp;
-static struct sensor_value bme280_press;
-static struct sensor_value bh1750_light;
-static struct sensor_value htu21d_humidity;
-static struct sensor_value htu21d_temp;
-
 #define CUSTOM_UUID_ILLUMINANCE &ess_illuminance_uuid.uuid
 
 /* Characteristic UUID 4f371c81-f2e5-414b-9feb-fcda9c55fee1 */
@@ -137,20 +159,14 @@ static void connected(struct bt_conn *conn, uint8_t err)
 {
 	ble_connections++;
 
-	if (ble_connections)
-		lv_label_set_text(ble_label, LV_SYMBOL_BLUETOOTH);
-	else
-		lv_label_set_text(ble_label, "");
+	bt_update_label(NULL);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	ble_connections--;
 
-	if (ble_connections)
-		lv_label_set_text(ble_label, LV_SYMBOL_BLUETOOTH);
-	else
-		lv_label_set_text(ble_label, "");
+	bt_update_label(NULL);
 }
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
@@ -160,15 +176,16 @@ BT_CONN_CB_DEFINE(conn_callbacks) = {
 
 static void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
 {
-	lv_label_set_text_fmt(ble_label, LV_SYMBOL_BLUETOOTH "%06u", passkey);
+	bt_update_label(&passkey);
+
+	printk("Passkey: %06u\n", passkey);
 }
 
 static void auth_cancel(struct bt_conn *conn)
 {
-	if (ble_connections)
-		lv_label_set_text(ble_label, LV_SYMBOL_BLUETOOTH);
-	else
-		lv_label_set_text(ble_label, "");
+	bt_update_label(NULL);
+
+	printk("Pairing cancelled\n");
 }
 
 static struct bt_conn_auth_cb auth_cb_display = {
@@ -177,10 +194,29 @@ static struct bt_conn_auth_cb auth_cb_display = {
 	.cancel = auth_cancel,
 };
 
+static void bt_ready(int err)
+{
+	if (err)
+		return;
+
+	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL,
+			      0);
+	if (err)
+		return;
+
+	err = bt_conn_auth_cb_register(&auth_cb_display);
+	if (err)
+		return;
+}
+#endif
+
 static const struct device *get_bme280_device(void)
 {
-	const struct device *const dev = DEVICE_DT_GET_ANY(bosch_bme280);
+	const struct device *dev = NULL;
 
+#if defined(CONFIG_BME280)
+	dev = DEVICE_DT_GET_ANY(bosch_bme280);
+#endif
 	if (dev == NULL)
 		return NULL;
 
@@ -192,8 +228,11 @@ static const struct device *get_bme280_device(void)
 
 static const struct device *get_bh1750_device(void)
 {
-	const struct device *const dev = DEVICE_DT_GET_ANY(rohm_bh1750);
+	const struct device *dev = NULL;
 
+#if defined(CONFIG_BH1750)
+	dev = DEVICE_DT_GET_ANY(rohm_bh1750);
+#endif
 	if (dev == NULL)
 		return NULL;
 
@@ -205,8 +244,27 @@ static const struct device *get_bh1750_device(void)
 
 static const struct device *get_htu21d_device(void)
 {
-	const struct device *const dev = DEVICE_DT_GET_ANY(meas_htu21d);
+	const struct device *dev = NULL;
 
+#if defined(CONFIG_HTU21D)
+	dev = DEVICE_DT_GET_ANY(meas_htu21d);
+#endif
+	if (dev == NULL)
+		return NULL;
+
+	if (!device_is_ready(dev))
+		return NULL;
+
+	return dev;
+}
+
+static const struct device *get_display_device(void)
+{
+	const struct device *dev = NULL;
+
+#if defined(CONFIG_DISPLAY)
+	dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+#endif
 	if (dev == NULL)
 		return NULL;
 
@@ -220,28 +278,35 @@ void main(void)
 {
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
 	const struct device *display_dev;
+#if defined(CONFIG_LVGL)
 	lv_obj_t *light_label, *temp_label, *press_label, *humidity_label;
+#endif
+#if defined(CONFIG_BT)
 	int err;
+#endif
 
 	bme280_dev = get_bme280_device();
 	if (bme280_dev == NULL)
-		return;
+		printk("Warning: BME280: No such sensor\n");
 
 	bh1750_dev = get_bh1750_device();
 	if (bh1750_dev == NULL)
-		return;
+		printk("Warning: BH1750: No such sensor\n");
 
 	htu21d_dev = get_htu21d_device();
 	if (htu21d_dev == NULL)
-		return;
+		printk("Warning: HTU21D: No such sensor\n");
 
-	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
-	if (!device_is_ready(display_dev))
-		return;
+	display_dev = get_display_device();
+	if (display_dev == NULL)
+		printk("Warning: No such display\n");
 
+#if defined(CONFIG_LVGL)
+#if defined(CONFIG_BT)
 	ble_label = lv_label_create(lv_scr_act());
 	lv_label_set_text(ble_label, "");
 	lv_obj_align(ble_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+#endif
 
 	light_label = lv_label_create(lv_scr_act());
 	lv_label_set_text(light_label, "0lux");
@@ -261,33 +326,38 @@ void main(void)
 
 	lv_task_handler();
 	display_blanking_off(display_dev);
+#endif
 
-	err = bt_enable(NULL);
+#if defined(CONFIG_BT)
+	err = bt_enable(bt_ready);
 	if (err)
-		return;
-
-	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err)
-		return;
-
-	err = bt_conn_auth_cb_register(&auth_cb_display);
-	if (err)
-		return;
+		printk("Warning: Bluetooth disabled\n");
+#endif
 
 	while (1) {
-		sensor_sample_fetch(bme280_dev);
-		sensor_channel_get(bme280_dev, SENSOR_CHAN_AMBIENT_TEMP,
-				   &bme280_temp);
-		sensor_channel_get(bme280_dev, SENSOR_CHAN_PRESS,
-				   &bme280_press);
-		sensor_sample_fetch(bh1750_dev);
-		sensor_channel_get(bh1750_dev, SENSOR_CHAN_LIGHT,
-				   &bh1750_light);
-		sensor_sample_fetch(htu21d_dev);
-		sensor_channel_get(htu21d_dev, SENSOR_CHAN_HUMIDITY,
-				   &htu21d_humidity);
-		sensor_channel_get(htu21d_dev, SENSOR_CHAN_AMBIENT_TEMP,
-				   &htu21d_temp);
+		if (bme280_dev) {
+			sensor_sample_fetch(bme280_dev);
+			sensor_channel_get(bme280_dev,
+					   SENSOR_CHAN_AMBIENT_TEMP,
+					   &bme280_temp);
+			sensor_channel_get(bme280_dev, SENSOR_CHAN_PRESS,
+					   &bme280_press);
+		}
+
+		if (bh1750_dev) {
+			sensor_sample_fetch(bh1750_dev);
+			sensor_channel_get(bh1750_dev, SENSOR_CHAN_LIGHT,
+					   &bh1750_light);
+		}
+
+		if (htu21d_dev) {
+			sensor_sample_fetch(htu21d_dev);
+			sensor_channel_get(htu21d_dev, SENSOR_CHAN_HUMIDITY,
+					   &htu21d_humidity);
+			sensor_channel_get(htu21d_dev,
+					   SENSOR_CHAN_AMBIENT_TEMP,
+					   &htu21d_temp);
+		}
 
 		printk("temp: %d.%06d; press: %d.%06d; light: %d.%06d; humidity: %d.%06d; temp2: %d.%06d\n",
 		      bme280_temp.val1, bme280_temp.val2, bme280_press.val1,
@@ -295,6 +365,7 @@ void main(void)
 		      htu21d_humidity.val1, htu21d_humidity.val2,
 		      htu21d_temp.val1, htu21d_temp.val2);
 
+#if defined(CONFIG_LVGL)
 		lv_label_set_text_fmt(light_label, "%dlux", bh1750_light.val1);
 
 		lv_label_set_text_fmt(temp_label, "%d.%d°C", bme280_temp.val1,
@@ -308,6 +379,8 @@ void main(void)
 				      htu21d_humidity.val1);
 
 		lv_task_handler();
+#endif
+
 		k_sleep(K_MSEC(1000));
 	}
 }
