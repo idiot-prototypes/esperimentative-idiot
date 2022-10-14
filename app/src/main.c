@@ -8,6 +8,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/display.h>
 #if defined(CONFIG_BT)
 #include <zephyr/bluetooth/bluetooth.h>
@@ -274,6 +275,8 @@ static const struct device *get_display_device(void)
 	return dev;
 }
 
+static const struct pwm_dt_spec pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
+
 void main(void)
 {
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
@@ -281,7 +284,7 @@ void main(void)
 #if defined(CONFIG_LVGL)
 	lv_obj_t *light_label, *temp_label, *press_label, *humidity_label;
 #endif
-#if defined(CONFIG_BT)
+#if defined(CONFIG_BT) || defined(CONFIG_PWM)
 	int err;
 #endif
 
@@ -335,6 +338,8 @@ void main(void)
 #endif
 
 	while (1) {
+		uint32_t pulse;
+
 		if (bme280_dev) {
 			sensor_sample_fetch(bme280_dev);
 			sensor_channel_get(bme280_dev,
@@ -364,6 +369,18 @@ void main(void)
 		      bme280_press.val2, bh1750_light.val1, bh1750_light.val2,
 		      htu21d_humidity.val1, htu21d_humidity.val2,
 		      htu21d_temp.val1, htu21d_temp.val2);
+
+#if defined(CONFIG_PWM)
+		pulse = bh1750_light.val1 * 5;
+		if (pulse < 333)
+			pulse = 333;
+		else if (pulse > pwm_led.period)
+			pulse = pwm_led.period;
+		err = pwm_set_pulse_dt(&pwm_led, pulse);
+		if (err)
+			printk("Warning: pwm_led: Failed to set pulse width: %i\n",
+			       err);
+#endif
 
 #if defined(CONFIG_LVGL)
 		lv_label_set_text_fmt(light_label, "%dlux", bh1750_light.val1);

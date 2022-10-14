@@ -11,7 +11,7 @@
   - [ ] [BH1750](https://github.com/zephyrproject-rtos/zephyr/pull/51268)
   - [ ] [HTU21D](https://github.com/zephyrproject-rtos/zephyr/pull/51269)
 - [x] Connect SPI devices ([ST7735R])
-- [ ] Connect Display LED to PWD
+- [x] Connect Display backlight LED to PWM
 - [x] Enable Bluetooth LE
   - [X] Environmental Sensing Service (Temperature, Pressure, Humidity,
     custom characteristics...)
