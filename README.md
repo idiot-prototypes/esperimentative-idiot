@@ -8,9 +8,9 @@ and/or the QEMU Tensilica Xtensa system emulator.
 
 ## BUILD AND FLASH
 
-Build the `idiocy` application from the source tree:
+Build the application from the source tree:
 
-	west build -b esp32 esperimentative-idiot/idiocy/
+	west build -b esp32 esperimentative-idiot/app/
 
 And flash the firmware down to the device:
 
