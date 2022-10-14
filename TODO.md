@@ -7,7 +7,11 @@
 - [X] Implement out-of-tree drivers
   - [X] [BH1750](drivers/sensor/bh1750/)
   - [X] [HTU21D](drivers/sensor/htu21d/)
+- [ ] Upstream drivers
+  - [ ] [BH1750](https://github.com/zephyrproject-rtos/zephyr/pull/51268)
+  - [ ] [HTU21D](https://github.com/zephyrproject-rtos/zephyr/pull/51269)
 - [x] Connect SPI devices ([ST7735R])
+- [ ] Connect Display LED to PWD
 - [x] Enable Bluetooth LE
   - [X] Environmental Sensing Service (Temperature, Pressure, Humidity,
     custom characteristics...)
