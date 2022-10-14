@@ -282,7 +282,7 @@ void main(void)
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
 	const struct device *display_dev;
 #if defined(CONFIG_LVGL)
-	lv_obj_t *light_label, *temp_label, *press_label, *humidity_label;
+	lv_obj_t *temp_label, *press_label, *humidity_label;
 #endif
 #if defined(CONFIG_BT) || defined(CONFIG_PWM)
 	int err;
@@ -310,10 +310,6 @@ void main(void)
 	lv_label_set_text(ble_label, "");
 	lv_obj_align(ble_label, LV_ALIGN_TOP_RIGHT, 0, 0);
 #endif
-
-	light_label = lv_label_create(lv_scr_act());
-	lv_label_set_text(light_label, "0lux");
-	lv_obj_align(light_label, LV_ALIGN_TOP_LEFT, 0, 0);
 
 	temp_label = lv_label_create(lv_scr_act());
 	lv_label_set_text(temp_label, "0.0°C");
@@ -383,8 +379,6 @@ void main(void)
 #endif
 
 #if defined(CONFIG_LVGL)
-		lv_label_set_text_fmt(light_label, "%dlux", bh1750_light.val1);
-
 		lv_label_set_text_fmt(temp_label, "%d.%d°C", bme280_temp.val1,
 				      bme280_temp.val2 / 100000);
 
