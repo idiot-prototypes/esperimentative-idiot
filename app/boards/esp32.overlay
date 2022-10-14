@@ -10,6 +10,7 @@
 / {
 	chosen {
 		zephyr,display = &st7735r;
+		zephyr,native-posix-counter = &ds3231;
 	};
 
 	aliases {
@@ -61,7 +62,7 @@
 		compatible = "meas,htu21d";
 		reg = <0x40>;
 	};
-	ds3231@68 {
+	ds3231: ds3231@68 {
 		compatible = "maxim,ds3231";
 		reg = <0x68>;
 	};
