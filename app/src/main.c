@@ -8,6 +8,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/counter.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/display.h>
 #if defined(CONFIG_BT)
@@ -19,6 +20,9 @@
 #include <zephyr/bluetooth/services/bas.h>
 #endif
 #include <zephyr/sys/byteorder.h>
+#if defined(CONFIG_NEWLIB_LIBC)
+#include <time.h>
+#endif
 #if defined(CONFIG_LVGL)
 #include <lvgl.h>
 #endif
@@ -28,6 +32,40 @@ static struct sensor_value bme280_press;
 static struct sensor_value bh1750_light;
 static struct sensor_value htu21d_humidity;
 static struct sensor_value htu21d_temp;
+
+#if defined(CONFIG_LVGL)
+static lv_obj_t *time_label;
+
+static void time_update_label(uint32_t timestamp)
+{
+#if defined(CONFIG_NEWLIB_LIBC)
+	time_t time = timestamp;
+	struct tm tv, *tp;
+	char buf[7];
+	size_t siz;
+
+	tp = gmtime_r(&time, &tv);
+	if (tp == NULL) {
+		printk("Warning: Failed to gmtime_r()\n");
+		return;
+	}
+
+	siz = strftime(buf, sizeof(buf), "%H:%M", tp);
+	if (siz == 0) {
+		printk("Warning: Failed to strftime()\n");
+		return;
+	}
+
+	lv_label_set_text(time_label, buf);
+#else
+	lv_label_set_text_fmt(time_label, "%u", timestamp);
+#endif
+}
+#else
+static inline void time_update_label(uint32_t timestamp)
+{
+}
+#endif
 
 #if defined(CONFIG_BT)
 static uint8_t ble_connections;
@@ -259,6 +297,22 @@ static const struct device *get_htu21d_device(void)
 	return dev;
 }
 
+static const struct device *get_ds3231_device(void)
+{
+	const struct device *dev = NULL;
+
+#if defined(CONFIG_COUNTER_MAXIM_DS3231)
+	dev = DEVICE_DT_GET_ANY(maxim_ds3231);
+#endif
+	if (dev == NULL)
+		return NULL;
+
+	if (!device_is_ready(dev))
+		return NULL;
+
+	return dev;
+}
+
 static const struct device *get_display_device(void)
 {
 	const struct device *dev = NULL;
@@ -280,10 +334,12 @@ static const struct pwm_dt_spec pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 void main(void)
 {
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
+	const struct device *ds3231_dev;
 	const struct device *display_dev;
 #if defined(CONFIG_LVGL)
 	lv_obj_t *temp_label, *press_label, *humidity_label;
 #endif
+	uint32_t now = 0;
 #if defined(CONFIG_BT) || defined(CONFIG_PWM)
 	int err;
 #endif
@@ -300,11 +356,19 @@ void main(void)
 	if (htu21d_dev == NULL)
 		printk("Warning: HTU21D: No such sensor\n");
 
+	ds3231_dev = get_ds3231_device();
+	if (ds3231_dev == NULL)
+		printk("Warning: DS3231: No such counter\n");
+
 	display_dev = get_display_device();
 	if (display_dev == NULL)
 		printk("Warning: No such display\n");
 
 #if defined(CONFIG_LVGL)
+	time_label = lv_label_create(lv_scr_act());
+	lv_label_set_text(time_label, "00:00");
+	lv_obj_align(time_label, LV_ALIGN_TOP_LEFT, 0, 0);
+
 #if defined(CONFIG_BT)
 	ble_label = lv_label_create(lv_scr_act());
 	lv_label_set_text(ble_label, "");
@@ -360,11 +424,18 @@ void main(void)
 					   &htu21d_temp);
 		}
 
-		printk("temp: %d.%06d; press: %d.%06d; light: %d.%06d; humidity: %d.%06d; temp2: %d.%06d\n",
+		if (ds3231_dev) {
+			err = counter_get_value(ds3231_dev, &now);
+			if (err)
+				printk("Warning: DS3231: Failed to get value: %i\n",
+				       err);
+		}
+
+		printk("temp: %d.%06d; press: %d.%06d; light: %d.%06d; humidity: %d.%06d; temp2: %d.%06d; now: %u\n",
 		      bme280_temp.val1, bme280_temp.val2, bme280_press.val1,
 		      bme280_press.val2, bh1750_light.val1, bh1750_light.val2,
 		      htu21d_humidity.val1, htu21d_humidity.val2,
-		      htu21d_temp.val1, htu21d_temp.val2);
+		      htu21d_temp.val1, htu21d_temp.val2, now);
 
 #if defined(CONFIG_PWM)
 		pulse = bh1750_light.val1 * 5;
@@ -391,6 +462,8 @@ void main(void)
 
 		lv_task_handler();
 #endif
+
+		time_update_label(now);
 
 		k_sleep(K_MSEC(1000));
 	}

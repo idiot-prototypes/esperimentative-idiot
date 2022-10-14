@@ -61,6 +61,10 @@
 		compatible = "meas,htu21d";
 		reg = <0x40>;
 	};
+	ds3231@68 {
+		compatible = "maxim,ds3231";
+		reg = <0x68>;
+	};
 };
 
 &spi3 {

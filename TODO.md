@@ -3,7 +3,7 @@
 - [X] Build and run an image on `qemu`
 - [X] Build and run an image on an [ESP32] board
 - [X] Create an out-of-tree source, build it and run it; whatever the target
-- [X] Connect I2C devices ([BH1750], [BMP280], and [HTU21D])
+- [X] Connect I2C devices ([BH1750], [BMP280], [HTU21D] and [DS3231])
 - [X] Implement out-of-tree drivers
   - [X] [BH1750](drivers/sensor/bh1750/)
   - [X] [HTU21D](drivers/sensor/htu21d/)
@@ -29,6 +29,7 @@ Three I2C sensors are connected to the [I2C0] PINs (`SDA` [GPIO21][ESP32];
 - [BMP280] at address `0x76` (`CSB` and `SDO` are left not connected; `CSB` is
   pulled-up; `SDO` is pulled-down)
 - [HTU21D] at address `0x40`
+- [DS3231] at address `0x68`
 
 ```
 uart:~$ i2c scan i2c@3ff53000
@@ -39,9 +40,8 @@ uart:~$ i2c scan i2c@3ff53000
 30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 40: 40 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
-60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- 68 -- -- -- -- -- -- -- 
 70: -- -- -- -- -- -- 76 --                         
-3 devices found on I2C_0
 (...)
 ```
 
@@ -67,4 +67,5 @@ _Note_: `VSPIQ` is left not connected.
 [BH1750]: https://www.az-delivery.de/en/products/gy-302-bh1750-lichtsensor-lichtstaerke-modul-fuer-arduino-und-raspberry-pi
 [BMP280]: https://www.az-delivery.de/en/products/azdelivery-bmp280-barometrischer-sensor-luftdruck-modul-fur-arduino-und-raspberry-pi
 [HTU21D]: https://www.az-delivery.de/en/products/gy-21-temperatur-sensor-modul
+[DS3231]: https://www.az-delivery.de/en/products/ds3231-real-time-clock
 [ST7735R]: https://www.az-delivery.de/en/products/1-8-zoll-spi-tft-display
