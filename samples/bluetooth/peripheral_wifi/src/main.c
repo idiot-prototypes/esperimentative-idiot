@@ -510,11 +510,9 @@ static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
 
 	scan_service.scanning_mode = SCAN_DONE;
 
-	if (scanning_mode_notify) {
-		uint8_t value = sys_cpu_to_le16(scan_service.scanning_mode);
-
-		bt_gatt_notify(NULL, chrc, &value, sizeof(value));
-	}
+	if (scanning_mode_notify)
+		bt_gatt_notify(NULL, chrc, &scan_service.scanning_mode,
+			       sizeof(scan_service.scanning_mode));
 }
 
 static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
@@ -530,12 +528,9 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
 
 	connect_service.connection_state = CONNECTED;
 
-	if (connection_state_notify) {
-		uint8_t value = sys_cpu_to_le16(
-					     connect_service.connection_state);
-
-		bt_gatt_notify(NULL, chrc, &value, sizeof(value));
-	}
+	if (connection_state_notify)
+		bt_gatt_notify(NULL, chrc, &connect_service.connection_state,
+			       sizeof(connect_service.connection_state));
 }
 
 static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
@@ -552,12 +547,9 @@ static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 
 	connect_service.connection_state = DISCONNECTED;
 
-	if (connection_state_notify) {
-		uint8_t value = sys_cpu_to_le16(
-					     connect_service.connection_state);
-
-		bt_gatt_notify(NULL, chrc, &value, sizeof(value));
-	}
+	if (connection_state_notify)
+		bt_gatt_notify(NULL, chrc, &connect_service.connection_state,
+			       sizeof(connect_service.connection_state));
 }
 
 static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
