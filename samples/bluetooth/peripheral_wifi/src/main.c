@@ -140,7 +140,7 @@ static ssize_t write_scanning_mode(struct bt_conn *conn,
 	if (!iface)
 		return -ENODEV;
 
-	val->ap_count = 0;
+	val->ap_count = 0U;
 	val->scanning_mode = SCAN_RUNNING;
 	err = net_mgmt(NET_REQUEST_WIFI_SCAN, iface, NULL, 0);
 	if (err)
