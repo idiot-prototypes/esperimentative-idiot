@@ -239,9 +239,11 @@ enum connection_state {
 };
 
 enum security_type {
-	NONE = 0,
-	WPA_WPA2_PERSONAL = 1,
-	WEP = 2,
+	INVALID = 0,
+	OPEN = 1,
+	WPA = 2,
+	WEP = 3,
+	WPA_ENTREPRISE = 4,
 };
 
 struct ap_parameters {
