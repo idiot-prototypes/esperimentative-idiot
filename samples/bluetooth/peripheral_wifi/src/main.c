@@ -80,7 +80,7 @@ static struct bt_uuid_128 ss_ap_count_uuid = BT_UUID_INIT_128(
 static struct bt_uuid_128 ss_ap_details_uuid = BT_UUID_INIT_128(
 	BT_UUID_128_ENCODE(0xfb8c0100, 0xd224, 0x11e4, 0x85a1, 0x0002a5d5c51b));
 
-#define AP_DETAILS_MAX_LEN 16
+#define AP_DETAILS_MAX_LEN 15
 
 struct wifi_scan_service {
 	uint8_t scanning_mode;
