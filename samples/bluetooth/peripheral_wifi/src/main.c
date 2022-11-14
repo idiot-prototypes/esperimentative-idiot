@@ -286,14 +286,35 @@ static ssize_t write_connection_state(struct bt_conn *conn,
 	uint8_t value = ((uint8_t *)buf)[offset];
 	int err;
 
-	if (value != DISCONNECT)
-		return -EINVAL;
-
-	if (val->connection_state == DISCONNECTED)
-		return 1;
-
 	if (!iface)
 		return -ENODEV;
+
+	if (value == CONNECT) {
+		struct wifi_connect_req_params params = { 0 };
+
+		if (val->connection_state != DISCONNECTED)
+			return -EINVAL;
+
+		params.ssid = val->ap_parameters.ssid;
+		params.ssid_length = val->ap_parameters.ssid_len;
+		params.psk = val->ap_parameters.passphrase;
+		params.psk_length = val->ap_parameters.passphrase_len;
+		params.band = WIFI_FREQ_BAND_2_4_GHZ;
+		params.channel = WIFI_CHANNEL_ANY;
+		params.security = WIFI_SECURITY_TYPE_PSK;
+		params.timeout = SYS_FOREVER_MS;
+		params.mfp = WIFI_MFP_OPTIONAL;
+		val->connection_state = CONNECTING;
+		err = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params,
+			       sizeof(params));
+		if (err)
+			return err;
+
+		return 1;
+	}
+
+	if (value != DISCONNECT)
+		return -EINVAL;
 
 	err = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, iface, NULL, 0);
 	if (err)
@@ -337,32 +358,9 @@ static ssize_t write_ap_parameters(struct bt_conn *conn,
 				   uint8_t flags)
 {
 	struct wifi_connect_service *val = attr->user_data;
-	struct wifi_connect_req_params params = { 0 };
-	struct net_if *iface = net_if_get_default();
 	struct ap_parameters *value = (struct ap_parameters *)buf;
-	int err;
-
-	if (val->connection_state == CONNECTING)
-		return -EBUSY;
-
-	if (!iface)
-		return -ENODEV;
 
 	memcpy(&val->ap_parameters, value, len);
-	params.ssid = val->ap_parameters.ssid;
-	params.ssid_length = val->ap_parameters.ssid_len;
-	params.psk = val->ap_parameters.passphrase;
-	params.psk_length = val->ap_parameters.passphrase_len;
-	params.band = WIFI_FREQ_BAND_2_4_GHZ;
-	params.channel = WIFI_CHANNEL_ANY;
-	params.security = WIFI_SECURITY_TYPE_PSK;
-	params.timeout = SYS_FOREVER_MS;
-	params.mfp = WIFI_MFP_OPTIONAL;
-	val->connection_state = CONNECTING;
-	err = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params,
-		       sizeof(params));
-	if (err)
-		return err;
 
 	return len;
 }
