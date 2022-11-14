@@ -297,12 +297,12 @@ static const struct device *get_htu21d_device(void)
 	return dev;
 }
 
-static const struct device *get_counter_device(void)
+static const struct device *get_ds3231_device(void)
 {
 	const struct device *dev = NULL;
 
-#if defined(CONFIG_DISPLAY)
-	dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_native_posix_counter));
+#if defined(CONFIG_COUNTER_MAXIM_DS3231)
+	dev = DEVICE_DT_GET_ANY(maxim_ds3231);
 #endif
 	if (dev == NULL)
 		return NULL;
@@ -334,7 +334,7 @@ static const struct pwm_dt_spec pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 void main(void)
 {
 	const struct device *bme280_dev, *bh1750_dev, *htu21d_dev;
-	const struct device *counter_dev;
+	const struct device *ds3231_dev;
 	const struct device *display_dev;
 #if defined(CONFIG_LVGL)
 	lv_obj_t *temp_label, *press_label, *humidity_label;
@@ -356,9 +356,9 @@ void main(void)
 	if (htu21d_dev == NULL)
 		printk("Warning: HTU21D: No such sensor\n");
 
-	counter_dev = get_counter_device();
-	if (counter_dev == NULL)
-		printk("Warning: No such counter\n");
+	ds3231_dev = get_ds3231_device();
+	if (ds3231_dev == NULL)
+		printk("Warning: DS3231: No such counter\n");
 
 	display_dev = get_display_device();
 	if (display_dev == NULL)
@@ -424,10 +424,10 @@ void main(void)
 					   &htu21d_temp);
 		}
 
-		if (counter_dev) {
-			err = counter_get_value(counter_dev, &now);
+		if (ds3231_dev) {
+			err = counter_get_value(ds3231_dev, &now);
 			if (err)
-				printk("Warning: counter: Failed to get value: %i\n",
+				printk("Warning: DS3231: Failed to get value: %i\n",
 				       err);
 		}
 
