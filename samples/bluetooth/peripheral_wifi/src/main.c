@@ -425,7 +425,11 @@ BT_GATT_SERVICE_DEFINE(connect_svc,
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
-	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_WIFI_SCAN_SERVICE_VAL),
+	BT_DATA_BYTES(BT_DATA_UUID128_SOME, BT_UUID_WIFI_SCAN_SERVICE_VAL),
+};
+
+static const struct bt_data sd[] = {
+	BT_DATA_BYTES(BT_DATA_UUID128_SOME, BT_UUID_WIFI_CONNECT_SERVICE_VAL),
 };
 
 static void bt_ready(void)
@@ -434,7 +438,8 @@ static void bt_ready(void)
 
 	printk("Bluetooth initialized\n");
 
-	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
+	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), sd,
+			      ARRAY_SIZE(sd));
 	if (err) {
 		printk("Advertising failed to start (err %d)\n", err);
 		return;
