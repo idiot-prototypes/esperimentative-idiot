@@ -52,22 +52,8 @@ enum scanning_mode {
 	SCAN_DONE = 0x02U,
 };
 
-enum ap_state_detail {
-	NO_DETAILS = 0x00U,
-	STALE_DETAILS = 0x01U,
-	CURRENT_DETAILS = 0x02U,
-};
-
-enum ap_freq_band {
-	BAND_2_4_GHZ = 0U,
-	BAND_5_GHZ = 1U,
-	BAND_6_GHZ = 2U,
-};
-
 struct ap_detail {
-	uint8_t state;
-	uint8_t channel;
-	uint8_t freq_band;
+	uint8_t security;
 	int8_t rssi;
 	uint8_t ssid_len;
 	uint8_t ssid[WIFI_SSID_MAX_LEN];
@@ -293,17 +279,27 @@ static ssize_t write_connection_state(struct bt_conn *conn,
 
 	if (value == CONNECT) {
 		struct wifi_connect_req_params params = { 0 };
+		enum wifi_security_type sec;
 
 		if (val->connection_state != DISCONNECTED)
 			return -EINVAL;
 
+		if (val->ap_parameters.security == OPEN)
+			sec = WIFI_SECURITY_TYPE_NONE;
+		else if (val->ap_parameters.security == WPA)
+			sec = WIFI_SECURITY_TYPE_PSK;
+		else
+			return -EINVAL;
+
 		params.ssid = val->ap_parameters.ssid;
 		params.ssid_length = val->ap_parameters.ssid_len;
-		params.psk = val->ap_parameters.passphrase;
-		params.psk_length = val->ap_parameters.passphrase_len;
+		if (sec != WIFI_SECURITY_TYPE_NONE) {
+			params.psk = val->ap_parameters.passphrase;
+			params.psk_length = val->ap_parameters.passphrase_len;
+		}
 		params.band = WIFI_FREQ_BAND_2_4_GHZ;
 		params.channel = WIFI_CHANNEL_ANY;
-		params.security = WIFI_SECURITY_TYPE_PSK;
+		params.security = sec;
 		params.timeout = SYS_FOREVER_MS;
 		params.mfp = WIFI_MFP_OPTIONAL;
 		val->connection_state = CONNECTING;
@@ -493,11 +489,17 @@ static void handle_wifi_scan_result(struct net_mgmt_event_callback *cb)
 
 	if (scan_service.ap_count < AP_DETAILS_MAX_LEN) {
 		struct ap_detail *ap;
+		uint8_t sec;
+
+		if (entry->security == WIFI_SECURITY_TYPE_NONE)
+			sec = OPEN;
+		else if (entry->security == WIFI_SECURITY_TYPE_PSK)
+			sec = WPA;
+		else
+			return;
 
 		ap = &scan_service.ap_details[scan_service.ap_count];
-		ap->state = CURRENT_DETAILS;
-		ap->channel = entry->channel;
-		ap->freq_band = entry->band;
+		ap->security = sec;
 		ap->rssi = entry->rssi;
 		ap->ssid_len = entry->ssid_length;
 		memcpy(ap->ssid, entry->ssid, entry->ssid_length);
