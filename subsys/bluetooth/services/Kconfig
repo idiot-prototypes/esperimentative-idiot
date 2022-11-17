@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig BT_WINC
+	bool "GATT WINC service"
+	help
+	  Enable WINC Wi-Fi Scan and Connect Services as defined in the
+	  Atmel ATWINC3400 user guide:
+
+	  https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42683-ATWINC3400-BLE-WiFi-Scan-and-Connect-Services-Guide_UserGuide.pdf
+
+if BT_WINC
+
+config BT_WINC_SETTINGS
+	bool "Settings usage in WINC Service"
+	select SETTINGS
+	help
+	  Enable Settings usage in WINC Service.
+
+endif # BT_WINC

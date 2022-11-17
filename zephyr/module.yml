@@ -4,4 +4,4 @@ name: esperimentative-idiot
 
 build:
   cmake: .
-  kconfig: drivers/Kconfig
+  kconfig: Kconfig
