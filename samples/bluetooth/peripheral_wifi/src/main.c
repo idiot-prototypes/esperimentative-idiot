@@ -367,8 +367,8 @@ static ssize_t write_ap_parameters(struct bt_conn *conn,
 	return len;
 }
 
-/* Primary Service Declaration */
-BT_GATT_SERVICE_DEFINE(wifi_svc,
+/* Wi-Fi Scan Service Declaration */
+BT_GATT_SERVICE_DEFINE(scan_svc,
 	BT_GATT_PRIMARY_SERVICE(&wifi_scan_service_uuid),
 	BT_GATT_CHARACTERISTIC(&ss_scanning_mode_uuid.uuid,
 		  BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
@@ -400,6 +400,10 @@ BT_GATT_SERVICE_DEFINE(wifi_svc,
 			       &scan_service),
 	BT_GATT_CPF(&ap_details_cpf),
 	BT_GATT_CUD("AP Details", BT_GATT_PERM_READ),
+);
+
+/* Wi-Fi Connect Service Declaration */
+BT_GATT_SERVICE_DEFINE(connect_svc,
 	BT_GATT_PRIMARY_SERVICE(&wifi_connect_service_uuid),
 	BT_GATT_CHARACTERISTIC(&ss_connection_state_uuid.uuid,
 		  BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
@@ -511,8 +515,8 @@ static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
 	if (scanning_mode_notify) {
 		const struct bt_gatt_attr *chrc;
 		
-		chrc = bt_gatt_find_by_uuid(wifi_svc.attrs,
-					    wifi_svc.attr_count,
+		chrc = bt_gatt_find_by_uuid(scan_svc.attrs,
+					    scan_svc.attr_count,
 					    &ss_scanning_mode_uuid.uuid);
 		if (chrc == NULL)
 			return;
@@ -537,8 +541,8 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
 	if (connection_state_notify) {
 		const struct bt_gatt_attr *chrc;
 		
-		chrc = bt_gatt_find_by_uuid(wifi_svc.attrs,
-					    wifi_svc.attr_count,
+		chrc = bt_gatt_find_by_uuid(connect_svc.attrs,
+					    connect_svc.attr_count,
 					    &ss_connection_state_uuid.uuid);
 		if (chrc == NULL)
 			return;
@@ -564,8 +568,8 @@ static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 	if (connection_state_notify) {
 		const struct bt_gatt_attr *chrc;
 		
-		chrc = bt_gatt_find_by_uuid(wifi_svc.attrs,
-					    wifi_svc.attr_count,
+		chrc = bt_gatt_find_by_uuid(connect_svc.attrs,
+					    connect_svc.attr_count,
 					    &ss_connection_state_uuid.uuid);
 		if (chrc == NULL)
 			return;
