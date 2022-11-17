@@ -498,7 +498,6 @@ static void handle_wifi_scan_result(struct net_mgmt_event_callback *cb)
 
 static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
 {
-	const struct bt_gatt_attr *chrc = &wifi_svc.attrs[2];
 	const struct wifi_status *status =
 		(const struct wifi_status *)cb->info;
 
@@ -509,14 +508,22 @@ static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
 
 	scan_service.scanning_mode = SCAN_DONE;
 
-	if (scanning_mode_notify)
+	if (scanning_mode_notify) {
+		const struct bt_gatt_attr *chrc;
+		
+		chrc = bt_gatt_find_by_uuid(wifi_svc.attrs,
+					    wifi_svc.attr_count,
+					    &ss_scanning_mode_uuid.uuid);
+		if (chrc == NULL)
+			return;
+
 		bt_gatt_notify(NULL, chrc, &scan_service.scanning_mode,
 			       sizeof(scan_service.scanning_mode));
+	}
 }
 
 static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
 {
-	const struct bt_gatt_attr *chrc = &wifi_svc.attrs[16];
 	const struct wifi_status *status =
 		(const struct wifi_status *) cb->info;
 
@@ -527,14 +534,22 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
 
 	connect_service.connection_state = CONNECTED;
 
-	if (connection_state_notify)
+	if (connection_state_notify) {
+		const struct bt_gatt_attr *chrc;
+		
+		chrc = bt_gatt_find_by_uuid(wifi_svc.attrs,
+					    wifi_svc.attr_count,
+					    &ss_connection_state_uuid.uuid);
+		if (chrc == NULL)
+			return;
+
 		bt_gatt_notify(NULL, chrc, &connect_service.connection_state,
 			       sizeof(connect_service.connection_state));
+	}
 }
 
 static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 {
-	const struct bt_gatt_attr *chrc = &wifi_svc.attrs[16];
 	const struct wifi_status *status =
 		(const struct wifi_status *) cb->info;
 
@@ -546,9 +561,18 @@ static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 
 	connect_service.connection_state = DISCONNECTED;
 
-	if (connection_state_notify)
+	if (connection_state_notify) {
+		const struct bt_gatt_attr *chrc;
+		
+		chrc = bt_gatt_find_by_uuid(wifi_svc.attrs,
+					    wifi_svc.attr_count,
+					    &ss_connection_state_uuid.uuid);
+		if (chrc == NULL)
+			return;
+
 		bt_gatt_notify(NULL, chrc, &connect_service.connection_state,
 			       sizeof(connect_service.connection_state));
+	}
 }
 
 static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
