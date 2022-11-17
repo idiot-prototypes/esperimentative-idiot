@@ -465,7 +465,7 @@ static struct bt_conn_auth_cb auth_cb_display = {
 	.cancel = auth_cancel,
 };
 
-static struct net_mgmt_event_callback wifi_shell_mgmt_cb;
+static struct net_mgmt_event_callback wifi_mgmt_cb;
 
 static void handle_wifi_scan_result(struct net_mgmt_event_callback *cb)
 {
@@ -586,14 +586,14 @@ void main(void)
 
 	bt_conn_auth_cb_register(&auth_cb_display);
 
-	net_mgmt_init_event_callback(&wifi_shell_mgmt_cb,
+	net_mgmt_init_event_callback(&wifi_mgmt_cb,
 				     wifi_mgmt_event_handler,
 				     NET_EVENT_WIFI_SCAN_RESULT |
 				     NET_EVENT_WIFI_SCAN_DONE |
 				     NET_EVENT_WIFI_CONNECT_RESULT |
 				     NET_EVENT_WIFI_DISCONNECT_RESULT);
 
-	net_mgmt_add_event_callback(&wifi_shell_mgmt_cb);
+	net_mgmt_add_event_callback(&wifi_mgmt_cb);
 
 	while (1)
 		k_sleep(K_SECONDS(1));
