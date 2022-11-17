@@ -14,6 +14,10 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/kernel.h>
 
+#include <zephyr/drivers/flash.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/fs/nvs.h>
+
 #include <zephyr/settings/settings.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
@@ -26,6 +30,8 @@
 
 #include <zephyr/net/wifi.h>
 #include <zephyr/net/wifi_mgmt.h>
+
+static struct nvs_fs fs;
 
 #ifndef BT_GATT_CPF_FORMAT_UINT8
 #define BT_GATT_CPF_FORMAT_UINT8 0x04
@@ -361,6 +367,16 @@ static ssize_t write_ap_parameters(struct bt_conn *conn,
 	struct ap_parameters *value = (struct ap_parameters *)buf;
 
 	memcpy(&val->ap_parameters, value, len);
+	if (!val->ap_parameters.ssid_len) {
+		int err = nvs_delete(&fs, 1U);
+		if (err)
+			return err;
+	} else {
+		ssize_t siz = nvs_write(&fs, 1U, &val->ap_parameters,
+					sizeof(val->ap_parameters));
+		if (siz != sizeof(val->ap_parameters))
+			return -EIO;
+	}
 
 	return len;
 }
@@ -611,6 +627,8 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 
 void main(void)
 {
+	struct flash_pages_info info;
+	ssize_t siz;
 	int err;
 
 	err = bt_enable(NULL);
@@ -651,6 +669,70 @@ void main(void)
 				     NET_EVENT_WIFI_DISCONNECT_RESULT);
 
 	net_mgmt_add_event_callback(&wifi_mgmt_cb);
+
+	/*
+	 * Ugly synchronization to wait for Wi-Fi ready.
+	 *
+	 * <err> esp32_wifi: esp32_wifi_connect: Wi-Fi not in station mode
+	 */
+	if (IS_ENABLED(CONFIG_BOARD_ESP32))
+		k_sleep(K_MSEC(1));
+
+	fs.flash_device = FIXED_PARTITION_DEVICE(storage_partition);
+	if (!device_is_ready(fs.flash_device)) {
+		printk("Flash is not ready\n");
+		return;
+	}
+
+	fs.offset = FIXED_PARTITION_OFFSET(storage_partition);
+	err = flash_get_page_info_by_offs(fs.flash_device, fs.offset, &info);
+	if (err) {
+		printk("Flash get page info failed (err %d)\n", err);
+		return;
+	}
+
+	fs.sector_size = info.size;
+	fs.sector_count = 3U;
+	err = nvs_mount(&fs);
+	if (err) {
+		printk("NVS mount failed (err %d)\n", err);
+		return;
+	}
+
+	siz = nvs_read(&fs, 1U, &connect_service.ap_parameters,
+		       sizeof(connect_service.ap_parameters));
+	if (siz == sizeof(connect_service.ap_parameters)) {
+		struct wifi_connect_service *val = &connect_service;
+		struct wifi_connect_req_params params = { 0 };
+		struct net_if *iface = net_if_get_default();
+		enum wifi_security_type sec;
+
+		if (val->ap_parameters.security == OPEN)
+			sec = WIFI_SECURITY_TYPE_NONE;
+		else if (val->ap_parameters.security == WPA)
+			sec = WIFI_SECURITY_TYPE_PSK;
+		else
+			return;
+
+		params.ssid = val->ap_parameters.ssid;
+		params.ssid_length = val->ap_parameters.ssid_len;
+		if (sec != WIFI_SECURITY_TYPE_NONE) {
+			params.psk = val->ap_parameters.passphrase;
+			params.psk_length = val->ap_parameters.passphrase_len;
+		}
+		params.band = WIFI_FREQ_BAND_2_4_GHZ;
+		params.channel = WIFI_CHANNEL_ANY;
+		params.security = sec;
+		params.timeout = SYS_FOREVER_MS;
+		params.mfp = WIFI_MFP_OPTIONAL;
+		val->connection_state = CONNECTING;
+		err = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params,
+			       sizeof(params));
+		if (err) {
+			printk("Request Wi-Fi connect failed (err %d)\n", err);
+			return;
+		}
+	}
 
 	while (1)
 		k_sleep(K_SECONDS(1));
