@@ -14,6 +14,8 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/kernel.h>
 
+#include <zephyr/settings/settings.h>
+
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
@@ -615,6 +617,26 @@ void main(void)
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
 		return;
+	}
+
+	if (IS_ENABLED(CONFIG_SETTINGS)) {
+		size_t count;
+
+		err = settings_load();
+		if (err) {
+			printk("Load settings failed (err %d)\n", err);
+			return;
+		}
+
+		bt_id_get(NULL, &count);
+		if (count == 0) {
+			err = bt_id_create(NULL, NULL);
+			if (err) {
+				printk("Bluetooth id create failed (err %d)\n",
+				       err);
+				return;
+			}
+		}
 	}
 
 	bt_ready();
