@@ -25,6 +25,10 @@
 
 #include <idiot-prototypes/bluetooth/services/winc.h>
 
+#define LOG_LEVEL CONFIG_BT_WINC_LOG_LEVEL
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(bt_winc);
+
 /*
  * The Wi-Fi® Scan Service, allows a BLE peripheral to retrieve a list of Wi-Fi
  * networks (access points) that are in range of the ATWINC3400.
@@ -54,6 +58,8 @@ static ssize_t read_scanning_mode(struct bt_conn *conn,
 				  uint16_t offset)
 {
 	struct wifi_scan_service *val = attr->user_data;
+
+	LOG_DBG("WINC Scanning Mode %d", scan_service.scanning_mode);
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &val->scanning_mode,
@@ -86,6 +92,8 @@ static ssize_t write_scanning_mode(struct bt_conn *conn,
 	err = net_mgmt(NET_REQUEST_WIFI_SCAN, iface, NULL, 0);
 	if (err)
 		return err;
+
+	LOG_DBG("WINC Scanning Mode %d", scan_service.scanning_mode);
 
 	return 1;
 }
@@ -180,6 +188,8 @@ static ssize_t read_connection_state(struct bt_conn *conn,
 {
 	struct wifi_connect_service *val = attr->user_data;
 
+	LOG_DBG("WINC Connection State %d", connect_service.connection_state);
+
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 				 &val->connection_state,
 				 sizeof(val->connection_state));
@@ -231,6 +241,9 @@ static ssize_t write_connection_state(struct bt_conn *conn,
 		if (err)
 			return err;
 
+		LOG_DBG("WINC Connection State %d",
+			connect_service.connection_state);
+
 		return 1;
 	}
 
@@ -240,6 +253,8 @@ static ssize_t write_connection_state(struct bt_conn *conn,
 	err = net_mgmt(NET_REQUEST_WIFI_DISCONNECT, iface, NULL, 0);
 	if (err)
 		return err;
+
+	LOG_DBG("WINC Connection State %d", connect_service.connection_state);
 
 	return 1;
 }
@@ -287,6 +302,9 @@ static ssize_t write_ap_parameters(struct bt_conn *conn,
 				sizeof(val->ap_parameters));
 	if (err)
 		return err;
+
+	LOG_INF("WINC AP Paramters SSID %s",
+		connect_service.ap_parameters.ssid);
 
 	return len;
 }
@@ -357,14 +375,14 @@ static void handle_wifi_scan_result(struct net_mgmt_event_callback *cb)
 		(const struct wifi_scan_result *)cb->info;
 
 	if (scan_service.ap_count == 0U) {
-		printk("\n%-4s | %-32s %-5s | %-13s | %-4s | %-15s\n",
-		       "Num", "SSID", "(len)", "Channel", "RSSI", "Security");
+		LOG_INF("%-4s | %-32s %-5s | %-13s | %-4s | %-15s",
+		        "Num", "SSID", "(len)", "Channel", "RSSI", "Security");
 	}
 
-	printk("%-4d | %-32s %-5u | %-4u (%-6s) | %-4d | %-15s\n",
-	       scan_service.ap_count, entry->ssid, entry->ssid_length,
-	       entry->channel, wifi_band_txt(entry->band), entry->rssi,
-	       wifi_security_txt(entry->security));
+	LOG_INF("%-4d | %-32s %-5u | %-4u (%-6s) | %-4d | %-15s",
+	        scan_service.ap_count, entry->ssid, entry->ssid_length,
+	        entry->channel, wifi_band_txt(entry->band), entry->rssi,
+	        wifi_security_txt(entry->security));
 
 	if (scan_service.ap_count < AP_DETAILS_MAX_LEN) {
 		struct ap_detail *ap;
@@ -392,11 +410,11 @@ static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
 		(const struct wifi_status *)cb->info;
 
 	if (status->status)
-		printk("Scan request failed (%d)\n", status->status);
-	else
-		printk("Scan request done\n");
+		LOG_ERR("Scan request failed (%d)", status->status);
 
 	scan_service.scanning_mode = SCAN_DONE;
+
+	LOG_DBG("WINC Scanning Mode %d", scan_service.scanning_mode);
 
 	if (scanning_mode_notify) {
 		const struct bt_gatt_attr *chrc;
@@ -418,11 +436,11 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
 		(const struct wifi_status *) cb->info;
 
 	if (status->status)
-		printk("Connection request failed (%d)\n", status->status);
-	else
-		printk("Connected\n");
+		LOG_ERR("Connection request failed (%d)", status->status);
 
 	connect_service.connection_state = CONNECTED;
+
+	LOG_INF("WINC Connection State %d", connect_service.connection_state);
 
 	if (connection_state_notify) {
 		const struct bt_gatt_attr *chrc;
@@ -443,13 +461,12 @@ static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 	const struct wifi_status *status =
 		(const struct wifi_status *) cb->info;
 
-	if (connect_service.connection_state == CONNECTING)
-		printk("Disconnection request %s (%d)\n",
-		       status->status ? "failed" : "done", status->status);
-	else
-		printk("Disconnected\n");
+	if (status->status)
+		LOG_ERR("Disconnection request failed (%d)", status->status);
 
 	connect_service.connection_state = DISCONNECTED;
+
+	LOG_INF("WINC Connection State %d", connect_service.connection_state);
 
 	if (connection_state_notify) {
 		const struct bt_gatt_attr *chrc;
@@ -500,7 +517,7 @@ static int winc_set(const char *name, size_t len_rd,
 		siz = read_cb(store, &connect_service.ap_parameters,
 			      sizeof(connect_service.ap_parameters));
 		if (siz < 0) {
-			printk("Read settings failed (%zd)\n", siz);
+			LOG_ERR("Read settings failed (%zd)", siz);
 			return siz;
 		}
 	}

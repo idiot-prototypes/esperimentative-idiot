@@ -16,4 +16,8 @@ config BT_WINC_SETTINGS
 	help
 	  Enable Settings usage in WINC Service.
 
+module = BT_WINC
+module-str = WINC
+source "subsys/logging/Kconfig.template.log_config"
+
 endif # BT_WINC
