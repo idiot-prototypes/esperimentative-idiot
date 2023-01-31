@@ -6,3 +6,4 @@ find_package(Zephyr)
 project(esperimentative_idiot)
 
 add_subdirectory(drivers)
+add_subdirectory(subsys)

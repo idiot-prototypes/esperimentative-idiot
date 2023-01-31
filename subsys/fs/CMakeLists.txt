@@ -1,3 +1,3 @@
 # SPDX-License-Identifier: Apache-2.0
 
-rsource "sensor/Kconfig"
+add_subdirectory_ifdef(CONFIG_FCB fcb)

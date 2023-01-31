@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if FCB
+config FCB_SHELL
+	bool "FCB shell"
+	depends on SHELL && FCB
+	default y
+	help
+	  Enable the FCB shell with related commands such as next, last,
+	  append, walk, rotate, clear...
+endif # FCB
