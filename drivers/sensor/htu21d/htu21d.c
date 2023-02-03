@@ -1,4 +1,4 @@
-/* htu21d.c - Driver for HTU21D	humidity and temperature sensor */
+/* htu21d.c - Driver for HTU21D humidity and temperature sensor */
 
 /*
  * Copyright (c) 2022 Gaël PORTAY
@@ -6,23 +6,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define DT_DRV_COMPAT meas_htu21d
+
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/i2c.h>
 #include <zephyr/init.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/pm/device.h>
 #include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/crc.h>
 #include <zephyr/sys/__assert.h>
 
 #include <zephyr/logging/log.h>
-
-#include "htu21d.h"
 
 LOG_MODULE_REGISTER(HTU21D, CONFIG_SENSOR_LOG_LEVEL);
 
 #if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
 #warning "HTU21D driver enabled without any devices"
 #endif
+
+#define HTU21D_TEMPERATURE_MEASUREMENT_HOLD_MASTER    0xE3
+#define HTU21D_HUMIDITY_MEASUREMENT_HOST_MASTER       0xE5
+#define HTU21D_TEMPERATURE_MEASUREMENT_NO_HOLD_MASTER 0xF3
+#define HTU21D_HUMIDITY_MEASUREMENT_NO_HOLD_MASTER    0xF5
+#define HTU21D_WRITE_USER_REGISTER                    0xE6
+#define HTU21D_READ_USER_REGISTER                     0xE7
+#define HTU21D_SOFT_RESET                             0xFE
 
 struct htu21d_data {
 	uint16_t humidity_raw_val;
@@ -44,7 +54,7 @@ static inline int htu21d_read(const struct device *dev, uint8_t *buf, int size)
 {
 	const struct htu21d_config *cfg = dev->config;
 
-	return i2c_read(cfg->i2c.bus, buf, size, cfg->i2c.addr);
+	return i2c_read_dt(&cfg->i2c, buf, size);
 }
 
 static inline int htu21d_write(const struct device *dev, uint8_t val)
@@ -52,32 +62,21 @@ static inline int htu21d_write(const struct device *dev, uint8_t val)
 	const struct htu21d_config *cfg = dev->config;
 	uint8_t buf = val;
 
-	return i2c_write(cfg->i2c.bus, &buf, sizeof(buf), cfg->i2c.addr);
+	return i2c_write_dt(&cfg->i2c, &buf, sizeof(buf));
 }
 
-static uint8_t htu21d_compute_crc(uint32_t value)
+static uint8_t htu21d_compute_crc(uint16_t value)
 {
-	uint32_t polynom = 0x988000; /* x^8 + x^5 + x^4 + 1 */
-	uint32_t msb = 0x800000;
-	uint32_t mask = 0xFF8000;
-	uint32_t crc = value & 0xFFFF00;
+	uint8_t buf[2];
 
-	while (msb != 0x80) {
-		if (crc & msb)
-			crc = ((crc ^ polynom) & mask) | (crc & ~mask);
-		msb >>= 1;
-		mask >>= 1;
-		polynom >>= 1;
-	}
-
-	return crc;
+	sys_put_be16(value, buf);
+	return crc8(buf, 2, 0x31, 0x00, false);
 }
 
 static int htu21d_humidity_fetch(const struct device *dev)
 {
-	struct htu21d_data *data = dev->data;
 	uint8_t buf[3];
-	uint32_t tmp;
+	uint16_t tmp;
 	uint8_t crc;
 	int ret;
 
@@ -88,9 +87,9 @@ static int htu21d_humidity_fetch(const struct device *dev)
 	}
 
 	/* Wait for the measure to be ready */
-	k_sleep(K_MSEC(16));
+	k_sleep(K_MSEC(16)); /* Max at 12 bit resolution */
 
-	ret = htu21d_read(dev, buf, 3);
+	ret = htu21d_read(dev, buf, sizeof(buf));
 	if (ret < 0) {
 		LOG_DBG("Read failed: %d", ret);
 		return ret;
@@ -103,21 +102,20 @@ static int htu21d_humidity_fetch(const struct device *dev)
 		return -1;
 	}
 
-	tmp = (buf[0] << 16) | (buf[1] << 8) | buf[2];
+	tmp = sys_get_be16(&buf[0]);
 	crc = htu21d_compute_crc(tmp);
 	if (crc != buf[2]) {
 		LOG_DBG("CRC invalid: %02x, expected: %02x", crc, buf[2]);
 		return -1;
 	}
 
-	return (buf[0] << 8) | buf[1];
+	return tmp;
 }
 
 static int htu21d_temperature_fetch(const struct device *dev)
 {
-	struct htu21d_data *data = dev->data;
-	uint8_t buf[3] = { -1 };
-	uint32_t tmp;
+	uint8_t buf[3];
+	uint16_t tmp;
 	uint8_t crc;
 	int ret;
 
@@ -128,9 +126,9 @@ static int htu21d_temperature_fetch(const struct device *dev)
 	}
 
 	/* Wait for the measure to be ready */
-	k_sleep(K_MSEC(50));
+	k_sleep(K_MSEC(50)); /* Max at 14 bit resolution */
 
-	ret = htu21d_read(dev, buf, 3);
+	ret = htu21d_read(dev, buf, sizeof(buf));
 	if (ret < 0) {
 		LOG_DBG("Read failed: %d", ret);
 		return ret;
@@ -143,42 +141,34 @@ static int htu21d_temperature_fetch(const struct device *dev)
 		return -1;
 	}
 
-	tmp = (buf[0] << 16) | (buf[1] << 8) | buf[2];
+	tmp = sys_get_be16(&buf[0]);
 	crc = htu21d_compute_crc(tmp);
 	if (crc != buf[2]) {
 		LOG_DBG("CRC invalid: %02x, expected: %02x", crc, buf[2]);
 		return -1;
 	}
 
-	return (buf[0] << 8) | buf[1];
+	return tmp;
 }
 
 static int htu21d_sample_fetch(const struct device *dev,
 			       enum sensor_channel chan)
 {
 	struct htu21d_data *data = dev->data;
-	uint8_t buf[3];
-	uint16_t tmp;
 	int ret;
 
 	__ASSERT_NO_MSG(chan == SENSOR_CHAN_ALL);
 
-#ifdef CONFIG_PM_DEVICE
-	enum pm_device_state state;
-	(void)pm_device_state_get(dev, &state);
-	/* Do not allow sample fetching from suspended state */
-	if (state == PM_DEVICE_STATE_SUSPENDED)
-		return -EIO;
-#endif
-
 	ret = htu21d_humidity_fetch(dev);
-	if (ret < 0)
+	if (ret < 0) {
 		return ret;
+	}
 	data->humidity_raw_val = ret;
 
 	ret = htu21d_temperature_fetch(dev);
-	if (ret < 0)
+	if (ret < 0) {
 		return ret;
+	}
 	data->temperature_raw_val = ret;
 
 	return 0;
@@ -193,14 +183,38 @@ static int htu21d_channel_get(const struct device *dev,
 
 	switch (chan) {
 	case SENSOR_CHAN_HUMIDITY:
+		/*
+		 * The documentation says the following about the conversion at
+		 * section Conversion of signal output p.15:
+		 *
+		 * Relative Humidity conversion
+		 *
+		 * With the relative humidity signal output SRH, the relative
+		 * humidity is obtained by the following formula (result in
+		 * %RH), no matter which resolution is chosen:
+		 *
+		 * RH = -6 + 125 * SRH / 2^16
+		 */
 		tmp = data->humidity_raw_val;
-		tmp = ((125000000LL * tmp) / 65535LL) - 6000000LL;
+		tmp = ((125000000LL * tmp) / 65536LL) - 6000000LL;
 		val->val1 = tmp / 1000000;
 		val->val2 = tmp % 1000000;
 		break;
 	case SENSOR_CHAN_AMBIENT_TEMP:
+		/*
+		 * The documentation says the following about the conversion at
+		 * section Conversion of signal output p.15:
+		 *
+		 * Temperature conversion
+		 *
+		 * The temperature T is calculated by inserting temperature
+		 * signal output STemp into the following formula (result in
+		 * °C), no matter which resolution is chosen:
+		 *
+		 * temp = -46.85 + 175.72 * Stemp / 2^16
+		 */
 		tmp = data->temperature_raw_val;
-		tmp = ((175720000LL * tmp) / 65635LL) - 46850000LL;
+		tmp = ((175720000LL * tmp) / 65636LL) - 46850000LL;
 		val->val1 = tmp / 1000000;
 		val->val2 = tmp % 1000000;
 		break;
@@ -218,7 +232,6 @@ static const struct sensor_driver_api htu21d_api_funcs = {
 
 static int htu21d_chip_init(const struct device *dev)
 {
-	struct htu21d_data *data = dev->data;
 	int ret;
 
 	ret = htu21d_is_ready(dev);
@@ -234,38 +247,11 @@ static int htu21d_chip_init(const struct device *dev)
 	}
 
 	/* Wait for the sensor to be ready */
-	k_sleep(K_MSEC(15));
+	k_sleep(K_MSEC(15)); /* The soft reset takes less than 15ms */
 
 	LOG_DBG("\"%s\" OK", dev->name);
 	return 0;
 }
-
-#ifdef CONFIG_PM_DEVICE
-static int htu21d_pm_action(const struct device *dev,
-			    enum pm_device_action action)
-{
-	int ret = 0;
-
-	switch (action) {
-	case PM_DEVICE_ACTION_RESUME:
-		/* Put the chip into power up mode and reset */
-		ret = htu21d_chip_init(dev);
-		break;
-	case PM_DEVICE_ACTION_SUSPEND:
-		/* Put the chip into power down mode */
-		ret = htu21d_write(dev, HTU21D_POWER_DOWN);
-		if (ret < 0) {
-			LOG_DBG("Power down failed: %d", ret);
-			return ret;
-		}
-		break;
-	default:
-		return -ENOTSUP;
-	}
-
-	return ret;
-}
-#endif /* CONFIG_PM_DEVICE */
 
 #define HTU21D_DEFINE(inst)						\
 	static struct htu21d_data htu21d_data_##inst;			\
@@ -273,11 +259,9 @@ static int htu21d_pm_action(const struct device *dev,
 		.i2c = I2C_DT_SPEC_INST_GET(inst),			\
 	};								\
 									\
-	PM_DEVICE_DT_INST_DEFINE(inst, htu21d_pm_action);		\
-									\
 	DEVICE_DT_INST_DEFINE(inst,					\
 			 htu21d_chip_init,				\
-			 PM_DEVICE_DT_INST_GET(inst),			\
+			 NULL,						\
 			 &htu21d_data_##inst,				\
 			 &htu21d_config_##inst,				\
 			 POST_KERNEL,					\
