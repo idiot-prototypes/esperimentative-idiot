@@ -1,4 +1,4 @@
-/* bh1750.c - Driver for BH1750	light sensor */
+/* bh1750.c - Driver for BH1750 light sensor */
 
 /*
  * Copyright (c) 2022 Gaël PORTAY
@@ -6,23 +6,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define DT_DRV_COMPAT rohm_bh1750
+
 #include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/i2c.h>
 #include <zephyr/init.h>
-#include <zephyr/drivers/gpio.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/__assert.h>
 
 #include <zephyr/logging/log.h>
 
-#include "bh1750.h"
-
 LOG_MODULE_REGISTER(BH1750, CONFIG_SENSOR_LOG_LEVEL);
 
 #if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
 #warning "BH1750 driver enabled without any devices"
 #endif
+
+#define BH1750_POWER_DOWN                          0x00
+#define BH1750_POWER_ON                            0x01
+#define BH1750_RESET                               0x07
+#define BH1750_CONTINUOUSLY_HIGH_RESOLUTION_MODE   0x10
+#define BH1750_CONTINUOUSLY_HIGH_RESOLUTION_MODE_2 0x11
+#define BH1750_CONTINUOUSLY_LOW_RESOLUTION_MODE    0x13
+#define BH1750_ONE_TIME_HIGH_RESOLUTION_MODE       0x20
+#define BH1750_ONE_TIME_HIGH_RESOLUTION_MODE_2     0x21
+#define BH1750_ONE_TIME_LOW_RESOLUTION_MODE        0x23
+#define BH1750_CHANGE_MEASUREMENT_TIME_HIGH        0x40
+#define BH1750_CHANGE_MEASUREMENT_TIME_LOW         0x60
 
 struct bh1750_data {
 	uint16_t raw_val;
@@ -43,7 +57,7 @@ static inline int bh1750_read(const struct device *dev, uint8_t *buf, int size)
 {
 	const struct bh1750_config *cfg = dev->config;
 
-	return i2c_read(cfg->i2c.bus, buf, size, cfg->i2c.addr);
+	return i2c_read_dt(&cfg->i2c, buf, size);
 }
 
 static inline int bh1750_write(const struct device *dev, uint8_t val)
@@ -51,7 +65,7 @@ static inline int bh1750_write(const struct device *dev, uint8_t val)
 	const struct bh1750_config *cfg = dev->config;
 	uint8_t buf = val;
 
-	return i2c_write(cfg->i2c.bus, &buf, sizeof(buf), cfg->i2c.addr);
+	return i2c_write_dt(&cfg->i2c, &buf, sizeof(buf));
 }
 
 static int bh1750_sample_fetch(const struct device *dev,
@@ -67,8 +81,9 @@ static int bh1750_sample_fetch(const struct device *dev,
 	enum pm_device_state state;
 	(void)pm_device_state_get(dev, &state);
 	/* Do not allow sample fetching from suspended state */
-	if (state == PM_DEVICE_STATE_SUSPENDED)
+	if (state == PM_DEVICE_STATE_SUSPENDED) {
 		return -EIO;
+	}
 #endif
 
 	ret = bh1750_write(dev, BH1750_ONE_TIME_HIGH_RESOLUTION_MODE);
@@ -78,15 +93,15 @@ static int bh1750_sample_fetch(const struct device *dev,
 	}
 
 	/* Wait for the measure to be ready */
-	k_sleep(K_MSEC(180));
+	k_sleep(K_MSEC(180)); /* Max for H-Resolution Mode */
 
-	ret = bh1750_read(dev, buf, 2);
+	ret = bh1750_read(dev, buf, sizeof(buf));
 	if (ret < 0) {
 		LOG_DBG("Read failed: %d", ret);
 		return ret;
 	}
 
-	data->raw_val = (buf[0] << 8) | buf[1];
+	data->raw_val = sys_get_be16(&buf[0]);
 
 	return 0;
 }
@@ -96,9 +111,24 @@ static int bh1750_channel_get(const struct device *dev,
 			      struct sensor_value *val)
 {
 	struct bh1750_data *data = dev->data;
+	int ret;
 
 	switch (chan) {
 	case SENSOR_CHAN_LIGHT:
+		/*
+		 * The documentation says the following about the calculation
+		 * at section Measurement sequence example from "Write
+		 * instruction" to "Read measurement result" p.17:
+		 *
+		 * How to calculate when the data High Byte is "10000011" and
+		 * Low Byte is "10010000"
+		 *
+		 * (2^15 + 2^9 + 2^8 + 2^7 + 2^4) / 1.2 = 28067 [lx]
+		 *
+		 * Which means:
+		 *
+		 * lx = Slx / 1.2
+		 */
 		val->val1 = data->raw_val / 1.2;
 		val->val2 = 0;
 		break;
@@ -116,7 +146,6 @@ static const struct sensor_driver_api bh1750_api_funcs = {
 
 static int bh1750_chip_init(const struct device *dev)
 {
-	struct bh1750_data *data = dev->data;
 	int ret;
 
 	ret = bh1750_is_ready(dev);
