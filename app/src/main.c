@@ -431,12 +431,6 @@ void main(void)
 				       err);
 		}
 
-		printk("temp: %d.%06d; press: %d.%06d; light: %d.%06d; humidity: %d.%06d; temp2: %d.%06d; now: %u\n",
-		      bme280_temp.val1, bme280_temp.val2, bme280_press.val1,
-		      bme280_press.val2, bh1750_light.val1, bh1750_light.val2,
-		      htu21d_humidity.val1, htu21d_humidity.val2,
-		      htu21d_temp.val1, htu21d_temp.val2, now);
-
 #if defined(CONFIG_PWM)
 		pulse = bh1750_light.val1 * 5;
 		if (pulse < 333)
