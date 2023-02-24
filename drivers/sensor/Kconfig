@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
 if SENSOR
-rsource "bh1750/Kconfig"
 rsource "htu21d/Kconfig"
 endif # SENSOR
