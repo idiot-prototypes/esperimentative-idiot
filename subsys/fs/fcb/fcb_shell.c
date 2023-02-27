@@ -237,7 +237,7 @@ static int cmd_append(const struct shell *shell, size_t argc, char *argv[])
 			shell_error(shell, "Failed to append to fcb, ret: %d", ret);
 			return ret;
 		}
-	
+
 		shell_print(shell, "Writing %u byte(s) to offset 0x%lx", len,
 			    FCB_ENTRY_FA_DATA_OFF(loc));
 		ret = flash_area_write(fcb.fap, FCB_ENTRY_FA_DATA_OFF(loc), buf, len);
